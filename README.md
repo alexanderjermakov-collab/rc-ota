@@ -1,6 +1,6 @@
 # RC OTA
 
-Mobile-first, read-only Bluetooth remote diagnostics. Development version 0.3.0.
+Mobile-first, read-only Bluetooth remote diagnostics. Development version 0.4.0.
 
 ## Open the app
 
@@ -47,3 +47,18 @@ Version 0.3 adds a model-specific OTA panel for firmware.umc-poland.com. It read
 
 Android bond/pairing state is not exposed by Web Bluetooth. This app verifies a GATT session and does not represent it as completion of the Android system pairing flow. Physical phone/remote behavior still requires a hardware retest.
 
+
+
+## Version 0.4.0: saved pairing and Android app
+
+Download the development-signed APK from https://github.com/alexanderjermakov-collab/rc-ota/releases/tag/v0.4.0 . Android 9 or later is required. Allow Nearby devices (or Location on older Android); confirm Android system pairing if requested. A phone is the host and the SHARP remote is the device to choose.
+
+- Android checks getBondState(), skips createBond() when BOND_BONDED, and otherwise waits for ACTION_BOND_STATE_CHANGED before starting GATT. It does not automatically confirm a PIN or bypass a system pairing dialog.
+- Successful device selection, stored pairing, GATT link, service discovery and live reads are separate stages. GATT verified requires a successful live characteristic read.
+- The last successfully read paired remote is saved locally and reconnected on reopening the app. On first use a single already-paired SHARP remote is reused; if several are paired the user chooses one.
+- The browser saves the permitted device ID after successful verification and uses getDevices() to reconnect without a new chooser where supported. It cannot initiate or confirm Android system bonding; this is displayed explicitly. Use Choose another remote to change devices.
+- A sleeping or unavailable remote is never labelled connected just because it is saved or paired.
+
+Validation: 19 automated web/OTA tests passed; APK compiled, aligned and signature verified. No Android device was attached during this release, so the pairing flow, LED behavior and native radio reconnect require physical validation. Firmware flashing remains unimplemented.
+
+Native source is in android/. To reproduce the Windows development APK build, point RCOTA_ANDROID_TOOLS to a directory containing android.jar (API 34), java/<JDK17>/, r8-8.3.37.jar, apktool_3.0.3.jar, uber-apk-signer-1.3.0.jar, and framework/. Run android/build.py with Python and Pillow installed. Tool binaries and signing keys are not included in this repository.
