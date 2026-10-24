@@ -1,0 +1,6 @@
+const test=require('node:test'),assert=require('node:assert/strict'),ota=require('../docs/ota.js');
+test('manufacturer listing uses fixed server and HTTPS metadata',()=>{const x=ota.manifest('http://firmware.umc-poland.com/model/fw.bin\nhttp://firmware.umc-poland.com/model/info.txt');assert.equal(x.metadataUrl,'https://firmware.umc-poland.com/model/info.txt')});
+test('rejects unexpected metadata hosts',()=>assert.throws(()=>ota.manifest('https://other.example/fw.bin https://other.example/info.txt')));
+test('parses firmware version and colon-delimited MAC intact',()=>{const x=ota.info('name: fw.bin\nversion: V0.0.12\nmd5sum: 0123456789abcdef0123456789abcdef\nscenario: manual\nmac: 00:11:22:33:44:55');assert.equal(x.version,'V0.0.12');assert.equal(x.mac,'00:11:22:33:44:55')});
+test('rejects malformed version metadata and MD5',()=>assert.throws(()=>ota.info('name: fw.bin\nversion: 1.2\nmd5sum: invalid')));
+test('comparison follows original numeric revision convention',()=>{assert.equal(ota.comparison('V0.0.11','V0.0.12'),'Newer version listed');assert.equal(ota.comparison('V0.0.12','V0.0.12'),'Same version');assert.equal(ota.comparison('Unknown','V0.0.12'),'Unknown version format')});
