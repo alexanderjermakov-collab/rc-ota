@@ -79,3 +79,7 @@ Web restoration enumerates previously granted devices even when local storage ha
 ## Version 0.5.2
 
 Retain the permitted BluetoothDevice object within the open page so Chrome without getDevices can reconnect without a repeated chooser. Unexpected disconnect preserves last-read data with an explicit historical-data message. Reloading still needs a chooser on browsers lacking getDevices.
+
+## Version 0.6.0: native bridge for both remotes
+
+Install the Android APK to run the HTML interface with native Bluetooth. Supports bonded SHARP RCU and SHARP SOLAR RCU; reconnect begins after the HTML handshake. A remembered supported remote takes priority; if both models are paired without a valid preference, select one. Scan permission is separate from connecting to paired remotes. Native reads and restoration decisions are included in exported diagnostics. This does not add native Bluetooth access to Chrome. Firmware transfer remains unimplemented.

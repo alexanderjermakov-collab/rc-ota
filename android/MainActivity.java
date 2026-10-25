@@ -54,7 +54,8 @@ public class MainActivity extends Activity {
 
     android.webkit.ValueCallback<Uri[]> fileCallback; String exportText;
 
-    BluetoothDevice target,pendingBond; boolean resumed=false,restoreAttempted=false;
+    BluetoothDevice target,pendingBond; boolean resumed=false,restoreAttempted=false,bridgeReady=false;
+    final JSONArray nativeTrace=new JSONArray();
 
     final Runnable bondTimeout=()->{pendingBond=null;status("Android pairing timed out. Confirm the system dialog or choose the remote again.");};
 
@@ -66,7 +67,7 @@ public class MainActivity extends Activity {
 
       BluetoothDevice d=i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);if(d==null||!d.getAddress().equals(pendingBond.getAddress()))return;
 
-      int state=d.getBondState();if(state==BluetoothDevice.BOND_BONDED){handler.removeCallbacks(bondTimeout);status("Android pairing confirmed. Preparing GATT connection.");if(resumed){pendingBond=null;openGatt(d);}}
+      int state=d.getBondState();if(state==BluetoothDevice.BOND_BONDED){handler.removeCallbacks(bondTimeout);status("Android pairing confirmed. Preparing GATT connection.");if(resumed&&bridgeReady){pendingBond=null;openGatt(d);}}
 
       else if(state==BluetoothDevice.BOND_NONE){handler.removeCallbacks(bondTimeout);pendingBond=null;status("Android pairing failed or was cancelled. No connected status was reported.");}
 
@@ -74,13 +75,19 @@ public class MainActivity extends Activity {
 
     }};
 
-    void restoreSaved(){if(restoreAttempted||!resumed||!permitted()||adapter==null||!adapter.isEnabled()||gatt!=null||pendingBond!=null)return;restoreAttempted=true;
+    void restoreSaved(){
+      if(!RemotePolicy.canRestore(bridgeReady,resumed,restoreAttempted,permitted(),adapter!=null&&adapter.isEnabled(),gatt!=null||pendingBond!=null))return;
+      restoreAttempted=true;
+      ArrayList<BluetoothDevice> bonded=new ArrayList<>(adapter.getBondedDevices());
+      String[] names=new String[bonded.size()],addresses=new String[bonded.size()];
+      int supported=0;for(int i=0;i<bonded.size();i++){names[i]=bonded.get(i).getName();addresses[i]=bonded.get(i).getAddress();if(RemotePolicy.supported(names[i]))supported++;}
+      status("Android bonded-device lookup: "+bonded.size()+" devices, "+supported+" supported SHARP remotes.");
+      int selected=RemotePolicy.select(names,addresses,getPreferences(0).getString("lastRemote",null));
+      if(selected>=0){status("Paired "+names[selected]+" found. Connecting directly without scanning or pairing again.");connect(bonded.get(selected));}
+      else status(supported>1?"Several paired SHARP remotes found. Choose the intended remote once.":"No paired SHARP RCU or SHARP SOLAR RCU found. Select Connect remote to choose a remote.");
+    }
 
-      String address=getPreferences(0).getString("lastRemote",null);if(address==null){BluetoothDevice only=null;int count=0;for(BluetoothDevice d:adapter.getBondedDevices()){String n=d.getName();if(n!=null&&n.toLowerCase(java.util.Locale.ROOT).contains("sharp")){only=d;count++;}}if(count==1){connect(only);}else if(count>1)status("Several paired SHARP remotes found. Choose the intended remote once.");return;}
-
-      try{BluetoothDevice d=adapter.getRemoteDevice(address);if(d.getBondState()==BluetoothDevice.BOND_BONDED){status("Saved Android pairing found. Reconnecting without pairing again.");connect(d);}else status("Saved remote is not paired in Android. Choose the remote to pair it.");}catch(Exception e){status("Saved remote unavailable. Choose a remote.");}}
-
-    void connectSavedOrChoose(){if(!permitted()){chooseRemote();return;}if(connected){sendStatus();return;}if(pendingBond!=null||gatt!=null){status("A connection or pairing attempt is already running.");return;}restoreAttempted=false;restoreSaved();if(gatt==null&&pendingBond==null)chooseRemote();}
+    void connectSavedOrChoose(){if(!bridgeReady){status("Wait for the HTML Bluetooth bridge to become ready.");return;}if(!permitted()){chooseRemote();return;}if(connected){sendStatus();return;}if(pendingBond!=null||gatt!=null){status("A connection or pairing attempt is already running.");return;}restoreAttempted=false;restoreSaved();if(gatt==null&&pendingBond==null)chooseRemote();}
 
     final java.util.concurrent.ExecutorService otaExecutor=java.util.concurrent.Executors.newSingleThreadExecutor(); int otaGeneration=0;
     WebView web; WebMessagePort port; BluetoothAdapter adapter; BluetoothGatt gatt;
@@ -155,7 +162,7 @@ public class MainActivity extends Activity {
 
         web.setWebViewClient(new WebViewClient(){
 
-            @Override public void onPageStarted(WebView v,String url,android.graphics.Bitmap favicon){closePort();disconnect("Select Connect remote to use Android Bluetooth.");}
+            @Override public void onPageStarted(WebView v,String url,android.graphics.Bitmap favicon){bridgeReady=false;restoreAttempted=false;closePort();disconnect("Preparing Android BLE bridge for SHARP RCU and SHARP SOLAR RCU.");}
 
             @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest req){return !"https".equals(req.getUrl().getScheme());}
 
@@ -209,9 +216,9 @@ public class MainActivity extends Activity {
 
             try{JSONObject j=new JSONObject(msg.getData());String type=j.optString("type");
 
-                if(type.equals("hello")){android.util.Log.i("RCOTA","Bridge handshake complete");sendStatus();sendMetadata();restoreSaved();}
+                if(type.equals("hello")){bridgeReady=true;android.util.Log.i("RCOTA","Bridge handshake complete");sendStatus();sendMetadata();if(!permitted())requestConnectPermission();else restoreSaved();}
 
-                else if(type.equals("export")){exportText=j.optJSONObject("value").toString(2);startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"rc-ota-diagnostics.json"),42);}
+                else if(type.equals("export")){JSONObject diagnostics=j.optJSONObject("value");put(diagnostics,"nativeTrace",nativeTrace);put(diagnostics,"bridgeReady",bridgeReady);put(diagnostics,"nativeConnectPermission",permitted());put(diagnostics,"nativeScanPermission",scanPermitted());exportText=diagnostics.toString(2);startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"rc-ota-diagnostics.json"),42);}
 
                 else if(type.equals("connect"))connectSavedOrChoose();
 
@@ -240,17 +247,19 @@ public class MainActivity extends Activity {
 
     void sendMetadata(){android.util.Log.i("RCOTA","Metadata: "+metadata.toString());JSONObject j=object("type","metadata");put(j,"value",metadata);send(j);}
 
-    void status(String message){status=message;android.util.Log.i("RCOTA",message);sendStatus();}
+    void status(String message){if(nativeTrace.length()>=200)nativeTrace.remove(0);JSONObject trace=object("timeMillis",System.currentTimeMillis());put(trace,"message",message);nativeTrace.put(trace);status=message;android.util.Log.i("RCOTA",message);sendStatus();}
 
 
 
-    boolean permitted(){return Build.VERSION.SDK_INT<31?checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED;}
+    boolean permitted(){return Build.VERSION.SDK_INT<31||checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED;}
+    boolean scanPermitted(){return Build.VERSION.SDK_INT<31?checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED;}
+    void requestConnectPermission(){if(Build.VERSION.SDK_INT>=31)requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT},10);}
 
     void chooseRemote(){
 
         if(!trusted(web.getUrl())){Toast.makeText(this,"Open the dashboard before connecting Bluetooth.",Toast.LENGTH_LONG).show();return;}
 
-        if(!permitted()){requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_CONNECT,Manifest.permission.BLUETOOTH_SCAN}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},10);return;}
+        if(!permitted()){requestConnectPermission();return;}
 
         if(adapter==null||!adapter.isEnabled()){status("Enable Bluetooth in TV settings, then reconnect.");return;}
 
@@ -262,19 +271,20 @@ public class MainActivity extends Activity {
 
         for(BluetoothDevice d:adapter.getBondedDevices())addDevice(d);
 
-        picker=new AlertDialog.Builder(this).setTitle("Select remote for RC OTA").setAdapter(deviceRows,(dialog,index)->{stopScan();connect(devices.get(index));}).setNegativeButton("Cancel",(d,w)->status("Connection cancelled.")).create();
+        picker=new AlertDialog.Builder(this).setTitle("Select remote for RC OTA").setAdapter(deviceRows,(dialog,index)->{stopScan();connect(devices.get(index));}).setNegativeButton("Cancel",(d,w)->status("Connection cancelled.")).setNeutralButton("Allow scan",(d,w)->requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},11)).create();
 
-        picker.setOnDismissListener(d->stopScan());picker.show();
+        picker.setOnDismissListener(d->stopScan());picker.show();picker.getButton(AlertDialog.BUTTON_NEUTRAL).setVisibility(scanPermitted()?View.GONE:View.VISIBLE);
 
         status("Select your remote in the device list. Scanning for 15 seconds.");
 
+        if(!scanPermitted()){status("Paired remotes are available without scanning. Grant scan permission to find a new remote.");return;}
         try{BluetoothLeScanner scanner=adapter.getBluetoothLeScanner();if(scanner!=null){scanning=true;scanner.startScan(scanCallback);handler.postDelayed(stopScanTask,15000);}}catch(SecurityException e){status("Bluetooth scan permission is required.");}
 
     }
 
-    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==10){if(permitted())connectSavedOrChoose();else status("Nearby devices permission is required. Select Connect remote to try again.");}}
+    @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){super.onRequestPermissionsResult(request,permissions,results);if(request==10){if(permitted()){restoreAttempted=false;restoreSaved();}else status("Nearby devices permission is required to read paired remotes. Select Connect remote to try again.");}else if(request==11&&scanPermitted())chooseRemote();}
 
-    void addDevice(BluetoothDevice d){for(BluetoothDevice x:devices)if(x.getAddress().equals(d.getAddress()))return;String name=d.getName();if(name==null||name.isEmpty()||!name.toLowerCase(java.util.Locale.ROOT).contains("sharp"))return;devices.add(d);labels.add(name+"\n"+d.getAddress());if(deviceRows!=null)deviceRows.notifyDataSetChanged();}
+    void addDevice(BluetoothDevice d){for(BluetoothDevice x:devices)if(x.getAddress().equals(d.getAddress()))return;String name=d.getName();if(!RemotePolicy.supported(name))return;devices.add(d);labels.add(name+"\n"+d.getAddress());if(deviceRows!=null)deviceRows.notifyDataSetChanged();}
 
     final ScanCallback scanCallback=new ScanCallback(){@Override public void onScanResult(int type,ScanResult result){handler.post(()->addDevice(result.getDevice()));}@Override public void onScanFailed(int code){handler.post(()->status("Scan unavailable ("+code+"). You can select a paired remote."));}};
 
@@ -282,7 +292,7 @@ public class MainActivity extends Activity {
 
     void connect(BluetoothDevice device){
 
-      disconnect("Preparing "+device.getName()+"...");target=device;put(metadata,"name",device.getName());put(metadata,"address",device.getAddress());sendMetadata();
+      disconnect("Preparing "+device.getName()+"...");target=device;getPreferences(0).edit().putString("lastRemote",device.getAddress()).apply();put(metadata,"name",device.getName());put(metadata,"address",device.getAddress());sendMetadata();
 
       if(device.getBondState()==BluetoothDevice.BOND_BONDED){status("Already paired in Android. Opening GATT without pairing again.");openGatt(device);return;}
 
@@ -342,15 +352,18 @@ public class MainActivity extends Activity {
 
         });}
 
-        @Override public void onCharacteristicRead(BluetoothGatt g,BluetoothGattCharacteristic c,int result){byte[] value=c.getValue();handler.post(()->{if(g!=gatt)return;if(result==BluetoothGatt.GATT_SUCCESS&&value!=null){String id=c.getUuid().toString();if(id.equals(uuid("2a19").toString())){int level=value.length>0?value[0]&255:255;if(level<=100)put(metadata,"level",level);}else{String text=new String(value,java.nio.charset.StandardCharsets.UTF_8).replace("\u0000","").trim();if(!text.isEmpty())put(metadata,id.equals(uuid("2a24").toString())?"model":id.equals(uuid("2a26").toString())?"firmware":"software",text);}sendMetadata();}done();});}
+        @Override public void onCharacteristicRead(BluetoothGatt g,BluetoothGattCharacteristic c,int result){handleRead(g,c,c.getValue(),result);}
+        @Override public void onCharacteristicRead(BluetoothGatt g,BluetoothGattCharacteristic c,byte[] value,int result){handleRead(g,c,value,result);}
 
         @Override public void onCharacteristicChanged(BluetoothGatt g,BluetoothGattCharacteristic c){if(!NOTIFY.equals(c.getUuid()))return;byte[] value=c.getValue();if(value==null)return;byte[] copy=value.clone();handler.post(()->{if(g!=gatt)return;JSONObject j=object("type","data");JSONArray bytes=new JSONArray();for(byte b:copy)bytes.put(b&255);put(j,"bytes",bytes);send(j);});}
 
     };
 
+    void handleRead(BluetoothGatt g,BluetoothGattCharacteristic c,byte[] bytes,int result){final byte[] value=bytes==null?null:bytes.clone();handler.post(()->{if(g!=gatt)return;status("GATT read "+c.getUuid()+": status "+result+", bytes "+(value==null?0:value.length));if(result==BluetoothGatt.GATT_SUCCESS&&value!=null){String id=c.getUuid().toString();if(c.getUuid().equals(uuid("2a19"))){int level=value.length>0?value[0]&255:255;if(level<=100)put(metadata,"level",level);}else{String text=new String(value,java.nio.charset.StandardCharsets.UTF_8).replace("\u0000","").trim();if(!text.isEmpty())put(metadata,id.equals(uuid("2a24").toString())?"model":id.equals(uuid("2a26").toString())?"firmware":"software",text);}sendMetadata();}done();});}
+
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==41&&fileCallback!=null){fileCallback.onReceiveValue(result==RESULT_OK&&data!=null?new Uri[]{data.getData()}:null);fileCallback=null;}if(request==42&&result==RESULT_OK&&data!=null&&exportText!=null){try(java.io.OutputStream stream=getContentResolver().openOutputStream(data.getData())){stream.write(exportText.getBytes(java.nio.charset.StandardCharsets.UTF_8));}catch(Exception e){status("Could not save diagnostics.");}exportText=null;}}
 
-    @Override protected void onResume(){super.onResume();resumed=true;if(pendingBond!=null&&permitted()&&pendingBond.getBondState()==BluetoothDevice.BOND_BONDED){BluetoothDevice d=pendingBond;pendingBond=null;openGatt(d);}else if(web!=null&&trusted(web.getUrl())){handler.post(()->restoreSaved());}}
+    @Override protected void onResume(){super.onResume();resumed=true;if(bridgeReady&&pendingBond!=null&&permitted()&&pendingBond.getBondState()==BluetoothDevice.BOND_BONDED){BluetoothDevice d=pendingBond;pendingBond=null;openGatt(d);}else if(web!=null&&trusted(web.getUrl())){handler.post(()->restoreSaved());}}
 
     @Override protected void onStop(){super.onStop();resumed=false;stopScan();if(picker!=null)picker.dismiss();if(pendingBond==null){disconnect("App paused. Saved Android pairing is retained.");restoreAttempted=false;}}
 
