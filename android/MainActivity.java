@@ -82,6 +82,7 @@ public class MainActivity extends Activity {
 
     void connectSavedOrChoose(){if(!permitted()){chooseRemote();return;}if(connected){sendStatus();return;}if(pendingBond!=null||gatt!=null){status("A connection or pairing attempt is already running.");return;}restoreAttempted=false;restoreSaved();if(gatt==null&&pendingBond==null)chooseRemote();}
 
+    final java.util.concurrent.ExecutorService otaExecutor=java.util.concurrent.Executors.newSingleThreadExecutor(); int otaGeneration=0;
     WebView web; WebMessagePort port; BluetoothAdapter adapter; BluetoothGatt gatt;
 
     BluetoothGattCharacteristic writer; boolean connected=false, scanning=false, opBusy=false;
@@ -196,7 +197,7 @@ public class MainActivity extends Activity {
 
     WebResourceResponse missing(){return new WebResourceResponse("text/plain","UTF-8",404,"Not found",Collections.emptyMap(),new ByteArrayInputStream(new byte[0]));}
 
-    void closePort(){if(port!=null){port.close();port=null;}}
+    void closePort(){otaGeneration++;if(port!=null){port.close();port=null;}}
 
     void attachBridge(String url){
 
@@ -215,6 +216,7 @@ public class MainActivity extends Activity {
                 else if(type.equals("connect"))connectSavedOrChoose();
 
                 else if(type.equals("choose"))chooseRemote();
+                else if(type.equals("check-ota")){final String model=j.optString("model");final int requestId=j.optInt("requestId"),generation=++otaGeneration;otaExecutor.execute(()->{JSONObject result=object("type","ota-result");put(result,"requestId",requestId);try{put(result,"value",OtaCatalog.check(model));}catch(Exception e){put(result,"error","OTA server check failed: "+e.getMessage());}handler.post(()->{if(generation==otaGeneration)send(result);});});}
 
                 else if(type.equals("disconnect"))disconnect("Remote disconnected.");
 
@@ -352,7 +354,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onStop(){super.onStop();resumed=false;stopScan();if(picker!=null)picker.dismiss();if(pendingBond==null){disconnect("App paused. Saved Android pairing is retained.");restoreAttempted=false;}}
 
-    @Override protected void onDestroy(){try{unregisterReceiver(bondReceiver);}catch(Exception ignored){}closePort();handler.removeCallbacksAndMessages(null);web.destroy();super.onDestroy();}
+    @Override protected void onDestroy(){otaExecutor.shutdownNow();try{unregisterReceiver(bondReceiver);}catch(Exception ignored){}closePort();handler.removeCallbacksAndMessages(null);web.destroy();super.onDestroy();}
 
     @Override public void onBackPressed(){if(web.canGoBack())web.goBack();else super.onBackPressed();}
 

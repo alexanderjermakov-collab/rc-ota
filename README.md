@@ -1,6 +1,6 @@
 # RC OTA
 
-Mobile-first, read-only Bluetooth remote diagnostics. Development version 0.4.0.
+Mobile-first, read-only Bluetooth remote diagnostics. Development version 0.5.0.
 
 ## Open the app
 
@@ -62,3 +62,12 @@ Download the development-signed APK from https://github.com/alexanderjermakov-co
 Validation: 19 automated web/OTA tests passed; APK compiled, aligned and signature verified. No Android device was attached during this release, so the pairing flow, LED behavior and native radio reconnect require physical validation. Firmware flashing remains unimplemented.
 
 Native source is in android/. To reproduce the Windows development APK build, point RCOTA_ANDROID_TOOLS to a directory containing android.jar (API 34), java/<JDK17>/, r8-8.3.37.jar, apktool_3.0.3.jar, uber-apk-signer-1.3.0.jar, and framework/. Run android/build.py with Python and Pillow installed. Tool binaries and signing keys are not included in this repository.
+
+## Version 0.5.0: automatic OTA availability
+
+After a verified remote reconnects and its exact model is read, the application automatically checks firmware.umc-poland.com for model-specific metadata and sends a HEAD request to the listed BIN file. The UI shows the installed version, server version, comparison, binary availability, source URLs, MD5 listed by the server, scenario and MAC restriction. It does not fetch the firmware body or flash the remote. Missing model, HTTP errors and unsupported HEAD checks remain Unknown or Could not verify rather than being reported as no update.
+
+The Android bridge uses the fixed manufacturer HTTP/HTTPS host and the original RemoteUpdate catalogue format. Cleartext networking is permitted only for firmware.umc-poland.com, as used by the original application; all other cleartext domains are disabled. Redirects are limited to the same host, and HTTPS downgrades are rejected. This is the manufacturer's web interface, not an implemented FTP client. The web page uses HTTPS and may be limited by CORS. No server credentials are embedded.
+
+Automatic requests are deduplicated per verified remote/model/version, and disconnection invalidates pending results. Pairing is reused as in 0.4.0; it is never equated with a live connection. Validation: 24 automated tests passed; Android APK compiled and signature verified. Physical Android pairing and real model-specific server availability still require device testing.
+
