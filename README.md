@@ -75,3 +75,7 @@ Automatic requests are deduplicated per verified remote/model/version, and disco
 ## Version 0.5.1: Chrome reconnect
 
 Web restoration enumerates previously granted devices even when local storage has no successful connection ID. A single permitted SHARP remote is reused; multiple devices require selection. The selected ID is remembered before connection, so a sleeping remote does not erase its browser permission. Diagnostics show getDevices support and permission counts. System pairing and site permission remain separate. This is a website-only release; APK v0.5.0 remains available.
+
+## Version 0.5.2
+
+Retain the permitted BluetoothDevice object within the open page so Chrome without getDevices can reconnect without a repeated chooser. Unexpected disconnect preserves last-read data with an explicit historical-data message. Reloading still needs a chooser on browsers lacking getDevices.
