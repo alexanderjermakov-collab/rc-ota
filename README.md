@@ -71,3 +71,7 @@ The Android bridge uses the fixed manufacturer HTTP/HTTPS host and the original 
 
 Automatic requests are deduplicated per verified remote/model/version, and disconnection invalidates pending results. Pairing is reused as in 0.4.0; it is never equated with a live connection. Validation: 24 automated tests passed; Android APK compiled and signature verified. Physical Android pairing and real model-specific server availability still require device testing.
 
+
+## Version 0.5.1: Chrome reconnect
+
+Web restoration enumerates previously granted devices even when local storage has no successful connection ID. A single permitted SHARP remote is reused; multiple devices require selection. The selected ID is remembered before connection, so a sleeping remote does not erase its browser permission. Diagnostics show getDevices support and permission counts. System pairing and site permission remain separate. This is a website-only release; APK v0.5.0 remains available.
