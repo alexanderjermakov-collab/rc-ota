@@ -8,4 +8,4 @@ The bridge binds only to loopback. BLE/OTA routes require a bearer token, exact 
 
 Hardware validation on SHARP Google TV (Android 14) over ADB and UART COM7 115200: native GATT discovery, four standard reads, display in TV Bro with Web Bluetooth absent, disconnect/reconnect and page reload. Tested remote model AN2101A-20UM021-001, firmware/software V0.0.3. Its model catalogue request returned HTTP 404, shown as unknown rather than no update. SHARP SOLAR RCU selection is unit-tested; physical Solar remote and phone Chrome testing remain outstanding.
 
-Automated validation: 40 JavaScript tests, 20 native selection checks, 14 HTTP transport checks. APK alignment and signature verified.
+Automated validation: 41 JavaScript tests, 20 native selection checks, 14 HTTP transport checks. APK alignment and signature verified.

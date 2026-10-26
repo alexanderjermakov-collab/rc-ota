@@ -90,4 +90,4 @@ Install the APK and launch RC OTA. Start bridge and open Chrome launches the loc
 
 Loopback HTTP runs on 127.0.0.1:18764 with token authentication for API requests. Do not host the local-mode HTML on another device: loopback means the Android device itself. The GitHub Pages site remains a Web Bluetooth demo and download page. Firmware transfer is not implemented.
 
-Validation: 40 JavaScript tests, 20 native policy checks and 14 HTTP transport checks. SHARP TV hardware testing confirmed native reads and browser display for AN2101A-20UM021-001 / V0.0.3. Its OTA request returned HTTP 404. Physical Solar remote and phone Chrome validation remain outstanding.
+Validation: 41 JavaScript tests, 20 native policy checks and 14 HTTP transport checks. SHARP TV hardware testing confirmed native reads and browser display for AN2101A-20UM021-001 / V0.0.3. Its OTA request returned HTTP 404. Physical Solar remote and phone Chrome validation remain outstanding.
