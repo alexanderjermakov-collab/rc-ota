@@ -1,14 +1,14 @@
-# RC OTA 0.10.0 experimental on Windows
+# RC OTA 0.11.0 on Windows
 
-Pair a SHARP RCU or SHARP SOLAR RCU in Windows first, then open **Start RC OTA.cmd**. Python 3.10 or newer and Windows PowerShell 5.1 are required; no Python packages are installed. Chrome opens the local application automatically.
+Customer download: extract the entire Windows ZIP and open **RC OTA.exe**. Python is bundled. Source download: use **Start RC OTA.cmd** with Python 3.10+ and Windows PowerShell 5.1. Pair the remote in Windows before reading it; Chrome opens the interface automatically.
 
 The local Windows bridge reads the standard Bluetooth Device Information and Battery characteristics through WinRT. It avoids the Chrome service-discovery failure observed on this PC. With one paired supported remote it reads automatically. With several, choose a remote and select **Read remote**.
 
-The interface displays model, firmware, software, hardware, manufacturer, battery, address, read time and available services. Reads refresh every 30 seconds while enabled. Every characteristic value comes from an uncached read; failures preserve earlier values, explicitly marked as historical. Native read sessions close after each read; the UI does not claim a continuously open GATT link.
+The customer view shows model, firmware and battery. Software, hardware, manufacturer, address, services and logs are under Technical details. Reads refresh every 30 seconds while enabled. Every characteristic value comes from an uncached read; failures preserve earlier values, explicitly marked as historical. Native read sessions close after each read; the UI does not claim a continuously open GATT link.
 
-**Stop automatic reads** stops further reads and preserves the last values. **Stop Windows bridge** closes the local server. Neither action removes Windows pairing or disconnects Windows HID usage. Closing the launcher's console also stops the bridge. The browser page stops polling while hidden; the bridge itself continues its reads until stopped.
+**Stop automatic reads** stops further reads and preserves the last values. **Stop Windows bridge** closes the local server. Neither action removes Windows pairing or disconnects Windows HID usage. The packaged app runs without a console; use Exit to stop it. Source-console users can also close the launcher console. The browser page stops polling while hidden; the bridge itself continues its reads until stopped.
 
-The HTTP server binds only to 127.0.0.1 on a dynamically selected port. API requests require a random per-launch bearer token, supplied via a URL fragment, removed from the address bar and kept in tab session storage. Host and Origin checks reject other sites and DNS rebinding; external origins receive no CORS access. Session state in `.runtime/` is local and excluded from Git. Do not share the authorization URL or session file.
+The HTTP server binds only to 127.0.0.1 on a dynamically selected port. API requests require a random per-launch bearer token, supplied via a URL fragment, removed from the address bar and kept in tab session storage. Host and Origin checks reject other sites and DNS rebinding; external origins receive no CORS access. Source-session state in `windows/.runtime/` and packaged-app state in the user's local application data directory are local; runtime data is excluded from Git and release archives. Do not share the authorization URL or session file.
 
 Ordinary reads and server checks never write firmware. Server checks fetch manufacturer metadata and send HEAD requests to binary URLs, using HTTPS on the fixed manufacturer host. Unavailable metadata stays Unknown.
 

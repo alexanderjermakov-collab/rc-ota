@@ -137,7 +137,7 @@ class BridgeTests(unittest.TestCase):
                 self.assertNotIn('test-session-token', response.read().decode())
             with urlopen(base+'/') as response:
                 html=response.read().decode()
-                self.assertIn('Stop Windows bridge',html); self.assertIn('id="manufacturer"',html)
+                self.assertIn('id="stopBridge"',html); self.assertIn('id="manufacturer"',html)
             with self.assertRaises(HTTPError) as error: urlopen(base+'/../windows/.runtime/session.json')
             self.assertEqual(error.exception.code,404)
             error.exception.close()

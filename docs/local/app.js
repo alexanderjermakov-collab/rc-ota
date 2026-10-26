@@ -65,7 +65,7 @@ function render(s){
  $('otaComparison').textContent=value?(ota.model===metadata.model?RcOta.comparison(metadata.firmware||metadata.software||'',value.version):'Different model · not compared'):'Not checked';
  $('otaDetails').textContent=value?['Model: '+ota.model,'Firmware: '+value.name,'Metadata: '+value.metadataUrl,'Binary: '+value.firmwareUrl,'File check: '+value.binaryStatus,'Server MD5 (file contents not verified): '+value.md5sum,'Scenario: '+(value.scenario||'Not specified'),'MAC restriction: '+(value.mac||'Not specified'),'Checked: '+new Date(ota.checkedAt).toLocaleString()].join('\n'):'No server metadata loaded for this model.';
  $('services').textContent=s.services?.length?s.services.map(service=>service.uuid+'\n'+service.characteristics.map(c=>'  '+c.uuid+' · properties '+c.properties).join('\n')).join('\n\n'):'No GATT services discovered.';
- $('log').textContent=(s.trace||[]).map(entry=>new Date(entry.timeMillis).toLocaleTimeString()+'  '+entry.message).join('\n')||'Ready.';buttons();
+ $('log').textContent=(s.trace||[]).map(entry=>new Date(entry.timeMillis).toLocaleTimeString()+'  '+entry.message).join('\n')||'Ready.';buttons();window.RcCustomerUI?.render(s);
 }
 function unavailable(error){online=false;$('transport').textContent='Local bridge unavailable';$('connection').textContent='Bridge unavailable';showError(error.name==='AbortError'?'Bridge response timed out. Open RC OTA and check that the bridge is running.':error.message||'Cannot reach the local bridge. Open RC OTA and select Open in Chrome.');if(latest?.readAt)$('readTime').textContent='Last read data · '+new Date(latest.readAt).toLocaleString();buttons();}
 async function poll(){

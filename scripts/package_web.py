@@ -4,9 +4,10 @@ import re
 import hashlib
 import base64
 import zipfile
+import json
 
 root = Path(__file__).resolve().parents[1]
-version = re.search(r'android:versionName="([^"]+)"', (root / 'android/AndroidManifest.xml').read_text(encoding='utf-8')).group(1)
+version = json.loads((root / 'docs/version.json').read_text(encoding='utf-8'))['version']
 out = root / 'build'
 out.mkdir(exist_ok=True)
 html = (root / 'docs/index.html').read_text(encoding='utf-8')
@@ -30,16 +31,17 @@ html = re.sub(r'(<meta http-equiv="Content-Security-Policy" content=")[^\"]*', l
 standalone = out / f'RC-OTA-{version}.html'
 standalone.write_text(html, encoding='utf-8', newline='\n')
 readme = f'''RC OTA HTML {version}
-For native paired-remote access: install RC-OTA-{version}.apk, launch RC OTA, Start bridge and open Chrome. The APK serves HTML and a token-protected API at http://127.0.0.1:18764/. On a TV without Chrome use Open TV browser (TV Bro).
-Standalone HTML / HTTPS hosting uses Web Bluetooth; it does not install a native bridge. Opening a downloaded file directly cannot enumerate Android system bonds. Firmware transfer is not implemented.
+This archive contains the public download page and read-only browser diagnostics.
+Firmware installation requires the separate Windows app. The Android 0.7.0 release remains a separate diagnostics bridge.
+Standalone HTML / HTTPS hosting uses Web Bluetooth; it does not install a native bridge or flash a remote.
 '''
 archive = out / f'RC-OTA-HTML-{version}.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output:
     output.write(standalone, standalone.name)
     output.writestr('README.txt', readme)
-    for name in ['index.html', 'style.css', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js']:
+    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json']:
         output.write(root / 'docs' / name, 'web/' + name)
 with zipfile.ZipFile(archive) as output:
     assert output.testzip() is None
-assert len(hashes) == 4 and '<script src=' not in html
+assert len(hashes) == 5 and '<script src=' not in html
 print('HTML and ZIP verified:', version)

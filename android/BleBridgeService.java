@@ -66,7 +66,7 @@ public class BleBridgeService extends Service {
         }
         if(!"GET".equals(method))return LocalHttpServer.error(405,"Method not allowed");
         String file,mime;
-        switch(path){case "/":case "/index.html":file="local/index.html";mime="text/html; charset=utf-8";break;case "/local.js":file="local/app.js";mime="text/javascript; charset=utf-8";break;case "/local.css":file="local/style.css";mime="text/css; charset=utf-8";break;case "/ota.js":file="ota.js";mime="text/javascript; charset=utf-8";break;default:return LocalHttpServer.error(404,"Not found");}
+        switch(path){case "/":case "/index.html":file="local/index.html";mime="text/html; charset=utf-8";break;case "/local.js":file="local/app.js";mime="text/javascript; charset=utf-8";break;case "/local.css":file="local/style.css";mime="text/css; charset=utf-8";break;case "/customer-ui.js":file="customer-ui.js";mime="text/javascript; charset=utf-8";break;case "/ota.js":file="ota.js";mime="text/javascript; charset=utf-8";break;default:return LocalHttpServer.error(404,"Not found");}
         try(InputStream in=getAssets().open("web/"+file);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] bytes=new byte[4096];int n;while((n=in.read(bytes))!=-1)out.write(bytes,0,n);return new LocalHttpServer.Response(200,mime,out.toByteArray());}
     }
     LocalHttpServer.Response api(String method,String path,String body){

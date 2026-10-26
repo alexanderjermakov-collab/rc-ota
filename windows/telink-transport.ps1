@@ -67,7 +67,8 @@ try {
  $firmware=$null
  if($Action -ne 'probe') {
   $fullPath=[IO.Path]::GetFullPath($FirmwarePath)
-  $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '.runtime/firmware'))+[IO.Path]::DirectorySeparatorChar
+  $cacheRoot=if($env:RCOTA_FIRMWARE_CACHE){$env:RCOTA_FIRMWARE_CACHE}else{Join-Path $PSScriptRoot '.runtime/firmware'}
+  $allowed=[IO.Path]::GetFullPath($cacheRoot)+[IO.Path]::DirectorySeparatorChar
   if(-not $fullPath.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){throw 'Firmware must be a package verified by this application.'}
   if($ExpectedSha256 -notmatch '^[a-fA-F0-9]{64}$' -or $ExpectedMd5 -notmatch '^[a-fA-F0-9]{32}$'){throw 'Verified package hashes are required.'}
   $firmware=[IO.File]::ReadAllBytes($fullPath)

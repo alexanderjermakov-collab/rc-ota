@@ -15,14 +15,19 @@ import threading
 import time
 import struct
 import base64
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import quote, unquote, urlsplit
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
-ROOT = Path(__file__).resolve().parent.parent
+FROZEN = bool(getattr(sys, 'frozen', False))
+ROOT = Path(sys._MEIPASS) if FROZEN else Path(__file__).resolve().parent.parent
+DEFAULT_RUNTIME = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'RC OTA' if FROZEN else ROOT / 'windows/.runtime'
+RUNTIME_DIR = Path(os.environ.get('RCOTA_RUNTIME_DIR', str(DEFAULT_RUNTIME)))
+FIRMWARE_DIR = RUNTIME_DIR / 'firmware'
 HOST = 'firmware.umc-poland.com'
-VERSION = '0.10.0-experimental'
+VERSION = '0.11.0'
 SUPPORTED_OTA_MODEL = 'AN2101A-20UM021-001'
 
 
@@ -54,7 +59,7 @@ def telink_command(action, address, model, package=None, installed=''):
     if installed:
         command += ['-ExpectedCurrentFirmware', installed]
     if package:
-        command += ['-FirmwarePath', str(ROOT / 'windows/.runtime/firmware' / (package['sha256'] + '.bin')),
+        command += ['-FirmwarePath', str(FIRMWARE_DIR / (package['sha256'] + '.bin')),
                     '-ExpectedSha256', package['sha256'], '-ExpectedMd5', package['md5']]
     return command
 
@@ -62,7 +67,7 @@ def telink_command(action, address, model, package=None, installed=''):
 def probe_telink(address, model, installed):
     result = subprocess.run(telink_command('probe', address, model, installed=installed), capture_output=True,
                             encoding='utf-8-sig', errors='replace', timeout=100,
-                            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), env=native_environment())
     try:
         report = json.loads(result.stdout.strip())
     except ValueError:
@@ -76,7 +81,7 @@ def write_telink(address, model, installed, package, on_progress):
     # Invoked only by the explicit, confirmed transfer endpoint, never by reads or preparation.
     process = subprocess.Popen(telink_command('flash', address, model, package, installed), stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, encoding='utf-8-sig', errors='replace',
-                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), env=native_environment())
     watchdog = threading.Timer(360, process.kill)
     watchdog.start()
     last = {}
@@ -152,6 +157,12 @@ def native(action, address=''):
     if data.get('error') and not any(item.get('status') == 'Success' and 'value' in item for item in data.get('readings', [])):
         raise RuntimeError(data['error'])
     return data
+
+
+def native_environment():
+    env = os.environ.copy()
+    env['RCOTA_FIRMWARE_CACHE'] = str(FIRMWARE_DIR)
+    return env
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -246,7 +257,7 @@ class Bridge:
         self.reader, self.checker = reader, checker
         self.verifier = verifier
         self.prober, self.writer = prober, writer
-        self.firmware_cache = Path(cache_dir) if cache_dir is not None else ROOT / 'windows/.runtime/firmware'
+        self.firmware_cache = Path(cache_dir) if cache_dir is not None else FIRMWARE_DIR
         self.transfer_busy = False
         self.verify_delay = 3
         self.lock = threading.RLock()
@@ -638,7 +649,8 @@ def make_server(bridge, token, port=0):
             assets = {'/': ('docs/local/index.html', 'text/html; charset=utf-8'),
                       '/local.js': ('docs/local/app.js', 'text/javascript; charset=utf-8'),
                       '/local.css': ('docs/local/style.css', 'text/css; charset=utf-8'),
-                      '/ota.js': ('docs/ota.js', 'text/javascript; charset=utf-8')}
+                      '/ota.js': ('docs/ota.js', 'text/javascript; charset=utf-8'),
+                      '/customer-ui.js': ('docs/customer-ui.js', 'text/javascript; charset=utf-8')}
             if path not in assets:
                 return self.reply(404, dict(error='Not found.'))
             file, mime = assets[path]
@@ -663,7 +675,7 @@ def main():
     parser.add_argument('--open-browser', action='store_true')
     parser.add_argument('--port', type=int, default=0)
     args = parser.parse_args()
-    runtime = ROOT / 'windows/.runtime'
+    runtime = RUNTIME_DIR
     existing_url = None
     try:
         saved = json.loads((runtime / 'session.json').read_text(encoding='utf-8'))
@@ -686,18 +698,18 @@ def main():
     except (OSError, ValueError, KeyError, URLError):
         pass
     if existing_url:
-        if args.open_browser:
+        if args.open_browser or FROZEN:
             open_browser(existing_url)
         return
     bridge = Bridge()
     token = secrets.token_urlsafe(32)
     server = make_server(bridge, token, args.port)
-    runtime.mkdir(exist_ok=True)
+    runtime.mkdir(parents=True, exist_ok=True)
     url = 'http://127.0.0.1:' + str(server.server_port) + '/#token=' + token
     # Fragment credentials never reach the HTTP request URL or remote servers.
     (runtime / 'session.json').write_text(json.dumps(dict(url=url, port=server.server_port, pid=os.getpid())), encoding='utf-8')
     bridge.start()
-    if args.open_browser:
+    if args.open_browser or FROZEN:
         open_browser(url)
     try:
         server.serve_forever(poll_interval=.25)

@@ -1,109 +1,50 @@
 # RC OTA
 
-## Windows 0.10.0 — local upgrade / downgrade
+Firmware updates and diagnostics for SHARP remote controls.
 
-Local BIN files now allow older, newer and identical versions; server OTA still requires a newer version. User-initiated server upgrade V0.0.2 → V0.0.3 and local downgrade V0.0.3 → V0.0.2 were confirmed on the same physical remote. See RELEASE-v0.10.0-Windows.md and windows/README.md.
+**Website:** https://alexanderjermakov-collab.github.io/rc-ota/
 
-## Windows 0.9.0 experimental
+**[Download for Windows](https://github.com/alexanderjermakov-collab/rc-ota/releases/download/v0.11.0/RC-OTA-Windows-0.11.0.zip)** · [Release notes](RELEASE-v0.11.0.md)
 
-A new Windows ZIP includes Upgrade Firmware package verification and a separately confirmed experimental Telink OTA transfer for AN2101A-20UM021-001. Packet tests and a physical read-only OTA probe passed; actual hardware flashing has not been tested. See RELEASE-v0.9.0-Windows.md before installing.
+## Use the app
 
-## Windows PC: native reading in Chrome (0.8.0 development)
+1. Extract the complete Windows ZIP and open **RC OTA.exe**. Python is included; no separate Python installation is needed.
+2. Pair your remote in Windows Bluetooth settings and keep it nearby and awake. The app reads its model, installed firmware and battery.
+3. Choose **Recommended update** or **Use a local file**, prepare the package, then review and confirm installation.
 
-Open `windows/Start RC OTA.cmd` after pairing a supported SHARP remote in Windows. The local Windows bridge reads model, firmware, software, hardware, manufacturer and battery through WinRT and displays them in Chrome. It works around the Chrome GATT service-discovery failure reproduced on the development PC. Reads refresh every 30 seconds; stopping reads preserves historical data. See `windows/README.md` for requirements and controls.
+Server updates require a newer version. Compatible local BIN files support upgrade, downgrade and same-version reinstall. Local files stay on your PC and go only to the local Windows app. Technical details and support reports are available in a collapsible section. Closing the browser tab leaves the app running; use **Exit** to stop it. Exit is unavailable during transfer.
 
-Web Bluetooth operations now have bounded timeouts, retain prior readings with a historical-data notice, and include hardware/manufacturer fields. File availability does not verify compatibility or integrity; no firmware is installed.
+## Supported hardware
 
-Validation on 2026-10-26: 48 JavaScript tests and 8 Windows bridge tests passed. Live PC test read AN2101A-20UM021-001, firmware/software V0.0.2, hardware V00, manufacturer and battery from the physical paired remote. This is a local development release; it does not update the public website or Android APK automatically.
+Windows installation is currently enabled for **AN2101A-20UM021-001** using Telink OTA. A server upgrade **V0.0.2 → V0.0.3** and local downgrade **V0.0.3 → V0.0.2** were confirmed on one physical remote by fresh firmware/software reads. This is a preview release; broader hardware compatibility has not been established.
 
-Mobile-first, read-only Bluetooth remote diagnostics. Development version 0.5.0.
+Before writing, the app checks the live model, installed version, battery (at least 30%, matching the OEM Telink default), supported service and cached file hashes. After transmission it reconnects and reads the firmware version. An unchanged or unknown target version cannot independently prove the installed image's identity; the app reports that limit.
 
-## Open the app
+The public website provides downloads and read-only browser diagnostics. It does not give a hosted page native Windows Bluetooth access or flash a remote by itself. The [Android 0.7.0 bridge](https://github.com/alexanderjermakov-collab/rc-ota/releases/tag/v0.7.0) is a separate diagnostics app.
 
-https://alexanderjermakov-collab.github.io/rc-ota/
+## Privacy and network access
 
-On Android, open the HTTPS page directly in Chrome, enable Bluetooth, keep the remote awake, and select **Connect remote**. If the remote requires pairing or a discoverable mode, follow its instructions. A remote already connected to a TV may not accept a second central connection. Browser and device support varies.
+No application backend, telemetry or analytics. Windows reads run locally through WinRT. The API binds only to 127.0.0.1, requires a random token and validates Host/Origin. Packaged builds store runtime files under the user's local application data directory. Source runs use `windows/.runtime/`; runtime files and firmware caches are excluded from Git and release archives.
 
-## Available now
+Server checks contact firmware.umc-poland.com over HTTPS. Firmware is downloaded during explicit preparation and checked against the supplied MD5; SHA-256 identifies cached bytes. MD5 matching is an integrity check, not a signature or proof of compatibility. Browser diagnostics can be limited by Bluetooth support, HTTPS and CORS. Support exports may contain device details; review them before sharing.
 
-- Default the device chooser to SHARP remotes; show all BLE devices only when explicitly selected.
-- Confirm permitted GATT services and remote identity before reporting a verified connection; device selection and opening a GATT link are not sufficient.
-- Read available standard model, firmware, software and battery characteristics.
-- List permitted services and characteristics; the browser only exposes services requested by this page, not every service on the device.
-- Inspect a local BIN/ZIP file and calculate SHA-256 without uploading it.
-- Export a diagnostic JSON file for troubleshooting.
-- Responsive phone and TV interface.
+## Develop and build
 
-**Firmware transfer, automatic/server OTA, signature verification, and recovery are not implemented.** The page does not write BLE characteristics. A selected firmware file is not sent to the remote. This is an inspection prototype, not a complete replacement for RemoteUpdate.
+The source ZIP runs with Python 3.10+ and Windows PowerShell 5.1 using `windows/Start RC OTA.cmd`; no runtime Python packages are required. See [Windows details](windows/README.md).
 
-## Privacy
+Checks from the repository root on Windows:
 
-No application backend, telemetry, or analytics. Bluetooth readings and selected files are processed locally. Diagnostic exports can contain device details: inspect them before sharing. GitHub Pages serves the page and handles normal web requests.
-
-## Android TV bridge
-
-The UI retains support for the separate locally packaged RC OTA Android BLE Bridge. The public website does not install a bridge or gain native Bluetooth access by itself. Native bridge messages are accepted only under the packaged appassets HTTPS origin. The manufacturer's app shortcut is shown only inside that native app. This repository contains the web test version; extracted OEM APKs, firmware binaries, and device logs are excluded.
-
-## Development
-
-Static site: `docs/`. No build step or external dependencies.
-
-Run tests with Node.js:
-
-```sh
-node --check docs/app.js
-node --test tests/bridge.test.cjs
+```text
+node --test tests/*.test.cjs
+python -m unittest discover -s tests -p "test_windows*.py"
 ```
 
-GitHub Pages serves the `docs` directory on the `main` branch. Tests use simulated Bluetooth and MessagePort objects; they do not replace a physical Android phone or remote test.
+Tests use simulated transfers and a native dry-run that does not open or write Bluetooth. Ordinary tests never flash a remote.
 
-## OTA server metadata
+To build the Windows download, install PyInstaller (0.11.0 was built with 6.22.3), then run:
 
-Version 0.3 adds a model-specific OTA panel for firmware.umc-poland.com. It reads the two-URL listing and the name/version/md5sum/scenario/mac metadata format recovered from RemoteUpdate. It displays the server version, installed version, comparison and source when the server actually responds. No firmware binary is fetched. Plain HTTP URLs are upgraded to HTTPS; the website does not bypass HTTPS, CORS, server authorization or redirects. An unavailable server or missing model is shown as Unknown, never as no update or a fabricated firmware version. A root-directory probe returned HTTP 403; this does not establish the status of any model-specific directory. A firmware model number is required to confirm a real available version.
+```text
+python scripts/package_windows.py --build-exe
+```
 
-Android bond/pairing state is not exposed by Web Bluetooth. This app verifies a GATT session and does not represent it as completion of the Android system pairing flow. Physical phone/remote behavior still requires a hardware retest.
-
-
-
-## Version 0.4.0: saved pairing and Android app
-
-Download the development-signed APK from https://github.com/alexanderjermakov-collab/rc-ota/releases/tag/v0.4.0 . Android 9 or later is required. Allow Nearby devices (or Location on older Android); confirm Android system pairing if requested. A phone is the host and the SHARP remote is the device to choose.
-
-- Android checks getBondState(), skips createBond() when BOND_BONDED, and otherwise waits for ACTION_BOND_STATE_CHANGED before starting GATT. It does not automatically confirm a PIN or bypass a system pairing dialog.
-- Successful device selection, stored pairing, GATT link, service discovery and live reads are separate stages. GATT verified requires a successful live characteristic read.
-- The last successfully read paired remote is saved locally and reconnected on reopening the app. On first use a single already-paired SHARP remote is reused; if several are paired the user chooses one.
-- The browser saves the permitted device ID after successful verification and uses getDevices() to reconnect without a new chooser where supported. It cannot initiate or confirm Android system bonding; this is displayed explicitly. Use Choose another remote to change devices.
-- A sleeping or unavailable remote is never labelled connected just because it is saved or paired.
-
-Validation: 19 automated web/OTA tests passed; APK compiled, aligned and signature verified. No Android device was attached during this release, so the pairing flow, LED behavior and native radio reconnect require physical validation. Firmware flashing remains unimplemented.
-
-Native source is in android/. To reproduce the Windows development APK build, point RCOTA_ANDROID_TOOLS to a directory containing android.jar (API 34), java/<JDK17>/, r8-8.3.37.jar, apktool_3.0.3.jar, uber-apk-signer-1.3.0.jar, and framework/. Run android/build.py with Python and Pillow installed. Tool binaries and signing keys are not included in this repository.
-
-## Version 0.5.0: automatic OTA availability
-
-After a verified remote reconnects and its exact model is read, the application automatically checks firmware.umc-poland.com for model-specific metadata and sends a HEAD request to the listed BIN file. The UI shows the installed version, server version, comparison, binary availability, source URLs, MD5 listed by the server, scenario and MAC restriction. It does not fetch the firmware body or flash the remote. Missing model, HTTP errors and unsupported HEAD checks remain Unknown or Could not verify rather than being reported as no update.
-
-The Android bridge uses the fixed manufacturer HTTP/HTTPS host and the original RemoteUpdate catalogue format. Cleartext networking is permitted only for firmware.umc-poland.com, as used by the original application; all other cleartext domains are disabled. Redirects are limited to the same host, and HTTPS downgrades are rejected. This is the manufacturer's web interface, not an implemented FTP client. The web page uses HTTPS and may be limited by CORS. No server credentials are embedded.
-
-Automatic requests are deduplicated per verified remote/model/version, and disconnection invalidates pending results. Pairing is reused as in 0.4.0; it is never equated with a live connection. Validation: 24 automated tests passed; Android APK compiled and signature verified. Physical Android pairing and real model-specific server availability still require device testing.
-
-
-## Version 0.5.1: Chrome reconnect
-
-Web restoration enumerates previously granted devices even when local storage has no successful connection ID. A single permitted SHARP remote is reused; multiple devices require selection. The selected ID is remembered before connection, so a sleeping remote does not erase its browser permission. Diagnostics show getDevices support and permission counts. System pairing and site permission remain separate. This is a website-only release; APK v0.5.0 remains available.
-
-## Version 0.5.2
-
-Retain the permitted BluetoothDevice object within the open page so Chrome without getDevices can reconnect without a repeated chooser. Unexpected disconnect preserves last-read data with an explicit historical-data message. Reloading still needs a chooser on browsers lacking getDevices.
-
-## Version 0.6.0: native bridge for both remotes
-
-Install the Android APK to run the HTML interface with native Bluetooth. Supports bonded SHARP RCU and SHARP SOLAR RCU; reconnect begins after the HTML handshake. A remembered supported remote takes priority; if both models are paired without a valid preference, select one. Scan permission is separate from connecting to paired remotes. Native reads and restoration decisions are included in exported diagnostics. This does not add native Bluetooth access to Chrome. Firmware transfer remains unimplemented.
-
-## Version 0.7.0: local HTML in Chrome / TV browser
-
-Install the APK and launch RC OTA. Start bridge and open Chrome launches the local HTML interface in Chrome. On a TV without Chrome use Open TV browser (TV Bro). Allow Nearby devices; paired SHARP RCU and SHARP SOLAR RCU can be read without scan permission. The Android foreground service owns GATT; browser Web Bluetooth is not required. A page refresh retains the service and pairing. Stop via the notification or launcher.
-
-Loopback HTTP runs on 127.0.0.1:18764 with token authentication for API requests. Do not host the local-mode HTML on another device: loopback means the Android device itself. The GitHub Pages site remains a Web Bluetooth demo and download page. Firmware transfer is not implemented.
-
-Validation: 41 JavaScript tests, 20 native policy checks and 14 HTTP transport checks. SHARP TV hardware testing confirmed native reads and browser display for AN2101A-20UM021-001 / V0.0.3. Its OTA request returned HTTP 404. Physical Solar remote and phone Chrome validation remain outstanding.
+Outputs go to `build/releases/`. GitHub Pages serves `docs/` from `main`. This release does not replace the Android APK. The Windows preview is not code-signed; managed PCs may require their normal IT approval.
