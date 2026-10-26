@@ -7,3 +7,4 @@ build/
 *.apk
 *.pyc
 __pycache__/
+windows/.runtime/

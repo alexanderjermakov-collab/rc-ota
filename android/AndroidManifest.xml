@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.scem.rcota" android:versionCode="6" android:versionName="0.6.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.scem.rcota" android:versionCode="7" android:versionName="0.7.0">
   <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="34"/>
   <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
   <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
@@ -10,8 +13,9 @@
   <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
   <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
   <uses-feature android:name="android.software.leanback" android:required="false"/>
-  <queries><package android:name="com.airoha.btd"/></queries><application android:label="RC OTA" android:icon="@drawable/rcota" android:banner="@drawable/rcota" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config">
-    <activity android:name="com.scem.rcota.MainActivity" android:exported="true" android:screenOrientation="landscape">
+  <queries><package android:name="com.android.chrome"/></queries><application android:label="RC OTA" android:icon="@drawable/rcota" android:banner="@drawable/rcota" android:theme="@android:style/Theme.Material.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config">
+    <service android:name="com.scem.rcota.BleBridgeService" android:exported="false" android:foregroundServiceType="connectedDevice"/>
+    <activity android:name="com.scem.rcota.MainActivity" android:exported="true">
       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter>
     </activity>
   </application>

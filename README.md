@@ -1,5 +1,21 @@
 # RC OTA
 
+## Windows 0.10.0 — local upgrade / downgrade
+
+Local BIN files now allow older, newer and identical versions; server OTA still requires a newer version. User-initiated server upgrade V0.0.2 → V0.0.3 and local downgrade V0.0.3 → V0.0.2 were confirmed on the same physical remote. See RELEASE-v0.10.0-Windows.md and windows/README.md.
+
+## Windows 0.9.0 experimental
+
+A new Windows ZIP includes Upgrade Firmware package verification and a separately confirmed experimental Telink OTA transfer for AN2101A-20UM021-001. Packet tests and a physical read-only OTA probe passed; actual hardware flashing has not been tested. See RELEASE-v0.9.0-Windows.md before installing.
+
+## Windows PC: native reading in Chrome (0.8.0 development)
+
+Open `windows/Start RC OTA.cmd` after pairing a supported SHARP remote in Windows. The local Windows bridge reads model, firmware, software, hardware, manufacturer and battery through WinRT and displays them in Chrome. It works around the Chrome GATT service-discovery failure reproduced on the development PC. Reads refresh every 30 seconds; stopping reads preserves historical data. See `windows/README.md` for requirements and controls.
+
+Web Bluetooth operations now have bounded timeouts, retain prior readings with a historical-data notice, and include hardware/manufacturer fields. File availability does not verify compatibility or integrity; no firmware is installed.
+
+Validation on 2026-10-26: 48 JavaScript tests and 8 Windows bridge tests passed. Live PC test read AN2101A-20UM021-001, firmware/software V0.0.2, hardware V00, manufacturer and battery from the physical paired remote. This is a local development release; it does not update the public website or Android APK automatically.
+
 Mobile-first, read-only Bluetooth remote diagnostics. Development version 0.5.0.
 
 ## Open the app

@@ -26,3 +26,26 @@ test('known OTA UUID without a live read cannot report a verified connection',as
 
 test('Chrome without getDevices reconnects the selected remote in the same page',async()=>{const s=setup(),remote=savedFixture();let lost,choosers=0,connections=0;remote.addEventListener=(name,fn)=>{lost=fn};const original=remote.gatt.connect;remote.gatt.connect=async()=>{connections++;remote.gatt.connected=true;return original()};s.context.navigator.bluetooth={requestDevice:async()=>{choosers++;return remote}};await s.el('connect').onclick();remote.gatt.connected=false;lost();assert.equal(s.el('connection').textContent,'Disconnected');assert.equal(s.el('model').textContent,'V1.2.3');assert.match(s.el('status').textContent,/last read/);await s.el('connect').onclick();assert.equal(choosers,1);assert.equal(connections,2);assert.equal(s.el('connection').textContent,'GATT verified')});
 test('explicit change of remote still opens chooser when permission is held in memory',async()=>{const s=setup();let calls=0;s.context.navigator.bluetooth={requestDevice:async()=>{calls++;return savedFixture()}};await s.el('connect').onclick();await s.el('disconnect').onclick();await s.el('choose').onclick();assert.equal(calls,2)});
+
+test('hung battery service lookup terminates the attempt and restores controls',async()=>{
+ const s=setup();s.context.setTimeout=(fn,ms)=>setTimeout(fn,ms===8000?5:ms);
+ let reads=0,closed=false;
+ const remote={id:'hung',name:'SHARP RCU',addEventListener(){},gatt:{connected:true,connect:async()=>({getPrimaryService:()=>{reads++;return new Promise(()=>{})}}),disconnect(){closed=true;this.connected=false}}};
+ s.context.navigator.bluetooth={requestDevice:async()=>remote};await s.el('connect').onclick();
+ assert.equal(reads,1,'Do not queue new GATT work behind a timed-out Windows operation');assert.equal(closed,true);
+ assert.equal(s.el('connect').disabled,false);assert.equal(s.el('connection').textContent,'Disconnected');assert.match(s.el('status').textContent,/timed out.*Windows bridge/);
+});
+
+test('failed same-remote retry retains historical values; choosing another remote clears them',async()=>{
+ const s=setup(),remote=savedFixture();s.context.navigator.bluetooth={requestDevice:async()=>remote};
+ await s.el('connect').onclick();await s.el('disconnect').onclick();
+ remote.gatt.connect=async()=>{throw Error('not awake')};await s.el('connect').onclick();
+ assert.equal(s.el('model').textContent,'V1.2.3');assert.match(s.el('readTime').textContent,/Last read/);
+ s.context.navigator.bluetooth.requestDevice=async()=>({id:'other',name:'SHARP SOLAR RCU',addEventListener(){},gatt:{connect:async()=>{throw Error('sleeping')},disconnect(){}}});
+ await s.el('choose').onclick();assert.equal(s.el('model').textContent,'—');assert.match(s.el('readTime').textContent,/No remote parameters/);
+});
+
+test('manufacturer and hardware revision are read and rendered',async()=>{
+ const s=setup(),remote=savedFixture();s.context.navigator.bluetooth={requestDevice:async()=>remote};await s.el('connect').onclick();
+ assert.equal(s.el('hardware').textContent,'V1.2.3');assert.equal(s.el('manufacturer').textContent,'V1.2.3');
+});
