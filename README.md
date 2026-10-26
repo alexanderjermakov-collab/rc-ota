@@ -99,3 +99,11 @@ Retain the permitted BluetoothDevice object within the open page so Chrome witho
 ## Version 0.6.0: native bridge for both remotes
 
 Install the Android APK to run the HTML interface with native Bluetooth. Supports bonded SHARP RCU and SHARP SOLAR RCU; reconnect begins after the HTML handshake. A remembered supported remote takes priority; if both models are paired without a valid preference, select one. Scan permission is separate from connecting to paired remotes. Native reads and restoration decisions are included in exported diagnostics. This does not add native Bluetooth access to Chrome. Firmware transfer remains unimplemented.
+
+## Version 0.7.0: local HTML in Chrome / TV browser
+
+Install the APK and launch RC OTA. Start bridge and open Chrome launches the local HTML interface in Chrome. On a TV without Chrome use Open TV browser (TV Bro). Allow Nearby devices; paired SHARP RCU and SHARP SOLAR RCU can be read without scan permission. The Android foreground service owns GATT; browser Web Bluetooth is not required. A page refresh retains the service and pairing. Stop via the notification or launcher.
+
+Loopback HTTP runs on 127.0.0.1:18764 with token authentication for API requests. Do not host the local-mode HTML on another device: loopback means the Android device itself. The GitHub Pages site remains a Web Bluetooth demo and download page. Firmware transfer is not implemented.
+
+Validation: 41 JavaScript tests, 20 native policy checks and 14 HTTP transport checks. SHARP TV hardware testing confirmed native reads and browser display for AN2101A-20UM021-001 / V0.0.3. Its OTA request returned HTTP 404. Physical Solar remote and phone Chrome validation remain outstanding.

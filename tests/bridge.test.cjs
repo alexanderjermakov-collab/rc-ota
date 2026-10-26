@@ -49,3 +49,5 @@ test('manufacturer and hardware revision are read and rendered',async()=>{
  const s=setup(),remote=savedFixture();s.context.navigator.bluetooth={requestDevice:async()=>remote};await s.el('connect').onclick();
  assert.equal(s.el('hardware').textContent,'V1.2.3');assert.equal(s.el('manufacturer').textContent,'V1.2.3');
 });
+
+test('local bridge snapshot waits until OTA client scripts can install listeners',()=>{const s=setup();let starts=0,ready;s.context.document.readyState='loading';s.context.document.addEventListener=(event,fn)=>{if(event==='DOMContentLoaded')ready=fn};s.context.window.RcLocalBridge={port:{},start(){starts++}};vm.runInNewContext(fs.readFileSync('docs/app.js','utf8'),{...s.context,window:s.context.window});assert.equal(starts,0);assert.equal(typeof ready,'function');ready();assert.equal(starts,1)});

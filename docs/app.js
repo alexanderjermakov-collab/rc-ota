@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id),entries=[];
 const optionalServices=['device_information','battery_service','4169726f-6861-4446-5553-657276696365','00010203-0405-0607-0809-0a0b0c0d1912','0000d0ff-3c17-d293-8e48-14fe2e4da212','0000fef6-0000-1000-8000-00805f9b34fb','0000ffd4-0000-1000-8000-00805f9b34fb'];
-let port=null,device=null,metadata={},services=[],connected=false,busy=false,revision=0;
+let port=window.RcLocalBridge?.port||null,device=null,metadata={},services=[],connected=false,busy=false,revision=0;
 let permittedDevice=null,lastReadMetadata={},readAt=0;
 let freshFields=new Set();
 let savedId='';try{savedId=localStorage.getItem('rcota-device-id')||''}catch{}
@@ -109,6 +109,6 @@ $('export').onclick=()=>{const data={version:'0.6.0',transport:port?'Android BLE
 window.RcNative={available:()=>!!port,send:message=>port?.postMessage(JSON.stringify(message))};
 $('transport').textContent=navigator.bluetooth&&isSecureContext?'Web Bluetooth available':'Web Bluetooth unavailable';$('environment').textContent=`Version 0.6.0 · HTTPS: ${isSecureContext?'yes':'no'} · Web Bluetooth: ${navigator.bluetooth?'available':'unavailable'}`;render();pairing('System pairing status is not exposed by Web Bluetooth');
 async function restore(){if(location.origin==='https://appassets.androidplatform.net'||port||busy||connected)return;const attemptRevision=revision;try{const previous=await savedRemote();if(port||busy||connected||revision!==attemptRevision)return;if(previous)await connectRemote(false,previous);else state(false,restoreDiagnostic.reason)}catch(e){log('Automatic reconnect unavailable: '+e.message)}}
-setTimeout(restore,0);
+if(window.RcLocalBridge){$('environment').textContent='Local Android connection';const startLocal=()=>window.RcLocalBridge.start(receive);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startLocal,{once:true});else startLocal();}else setTimeout(restore,0);
 window.addEventListener('pagehide',()=>{revision++;device?.gatt.disconnect();port?.close()});
 document.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const nodes=[...document.querySelectorAll('button:not(:disabled):not([hidden]),input')],current=nodes.indexOf(document.activeElement);if(current<0){nodes[0]?.focus();event.preventDefault();return}const direction=['ArrowRight','ArrowDown'].includes(event.key)?1:-1;nodes[(current+direction+nodes.length)%nodes.length]?.focus();event.preventDefault()});
