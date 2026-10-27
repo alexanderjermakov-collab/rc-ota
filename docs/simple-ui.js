@@ -154,7 +154,7 @@ function setLanguage(value){language=value==='pl'?'pl':'en';document.documentEle
 }
 function render(){
  const connected=!!remote.connected,blocked=!!remote.busy||!!remote.locked;
- $('connectionState').textContent=t(remote.busy?'connecting':connected?'connected':'disconnected');$('connectionState').classList.toggle('connected',connected);$('readRemote').disabled=!connected||blocked;$('connect').textContent=t(connected?'next':'connect');$('connect').disabled=blocked;$('disconnect').disabled=blocked||!(connected||remote.hasDevice);
+ $('connectionState').textContent=t(remote.busy?'connecting':connected?'connected':'disconnected');$('connectionState').classList.toggle('connected',connected);$('readRemote').disabled=!connected||blocked;$('connect').textContent=t(connected||remote.nextSelection?'next':'connect');$('connect').disabled=blocked;$('disconnect').disabled=blocked||!(connected||remote.hasDevice);
  $('selectedFilename').textContent=file?file.filename:t('noFile');
  $('selectedVersion').textContent=file?(file.version?t('version')+' '+file.version:t('localVersion'))+' · '+t(file.source==='local'?'sourcePhone':'sourceServer')+(file.batchApproved?' · '+t('approved'):''):t('chooseSource');
  let message=t(remote.busy?'reading':connected?'choose':remote.readAt?'historical':'start');
