@@ -13,6 +13,8 @@ out.mkdir(exist_ok=True)
 html = (root / 'docs/index.html').read_text(encoding='utf-8')
 css = (root / 'docs/mobile.css').read_text(encoding='utf-8')
 hashes = []
+logo_data = base64.b64encode((root / 'docs/sharp-logo.svg').read_bytes()).decode()
+html = html.replace('src="sharp-logo.svg"', 'src="data:image/svg+xml;base64,' + logo_data + '"')
 
 def digest(value):
     return "'sha256-" + base64.b64encode(hashlib.sha256(value.encode('utf-8')).digest()).decode() + "'"
@@ -26,7 +28,7 @@ def inline(match):
     return '<script>' + code + '</script>'
 
 html = re.sub(r'<script src="([^?\"]+)(?:\?[^\"]*)?"></script>', inline, html)
-csp = "default-src 'self'; style-src " + digest(css) + "; script-src " + ' '.join(hashes) + "; connect-src 'self' https://firmware.umc-poland.com; img-src 'self' blob:; object-src 'none'; frame-src 'none'"
+csp = "default-src 'self'; style-src " + digest(css) + "; script-src " + ' '.join(hashes) + "; connect-src 'self' https://firmware.umc-poland.com; img-src 'self' blob: data:; object-src 'none'; frame-src 'none'"
 html = re.sub(r'(<meta http-equiv="Content-Security-Policy" content=")[^\"]*', lambda match: match.group(1) + csp, html)
 standalone = out / f'RC-OTA-{version}.html'
 standalone.write_text(html, encoding='utf-8', newline='\n')
@@ -40,7 +42,7 @@ archive = out / f'RC-OTA-HTML-{version}.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output:
     output.write(standalone, standalone.name)
     output.writestr('README.txt', readme)
-    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js', 'simple-ui.js', 'mobile.css']:
+    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js', 'simple-ui.js', 'mobile.css', 'sharp-logo.svg', 'ASSETS.md']:
         output.write(root / 'docs' / name, 'web/' + name)
 with zipfile.ZipFile(archive) as output:
     assert output.testzip() is None

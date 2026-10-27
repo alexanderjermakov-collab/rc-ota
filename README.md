@@ -6,9 +6,9 @@ Firmware updates and diagnostics for SHARP remote controls.
 
 **[Download for Windows](https://github.com/alexanderjermakov-collab/rc-ota/releases/download/v0.12.0/RC-OTA-Windows-0.12.0.zip)** · [Release notes](RELEASE-v0.12.0.md)
 
-## Phone interface 0.13.0
+## Phone interface 0.14.0
 
-The website opens directly into one compact Russian-language screen: connect/read the remote, view model/version/battery, choose firmware from phone or server, confirm and install. About contains the version, upgrade instructions and diagnostic export. Local file selection prepares the BIN automatically; it never starts installation.
+Remote Control Software Upgrade opens directly into one compact screen, in English by default with a persistent English / Polski selector: connect/read the remote, view model/version/battery, choose firmware from phone or server, confirm and install. Help contains instructions and diagnostic export. About contains only name, version, author and release date. The official Sharp logo is served locally. Local file selection prepares the BIN automatically; it never starts installation.
 
 ## Use the app
 

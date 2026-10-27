@@ -1,0 +1,11 @@
+# Remote Control Software Upgrade 0.14.0
+
+The phone interface now defaults to English and offers a persistent English / Polski language selector. The exact application name is Remote Control Software Upgrade. The original Sharp SVG from https://www.sharp.eu/themes/custom/volcano/logo.svg is served locally, with its shape and colour unchanged. Help contains upgrade/reconnection instructions and Save diagnostics. About contains only the software name, version, author and release date.
+
+Fixed an application-created post-update disconnect: 0.13.0 called `device.gatt.disconnect()` unconditionally after sending and checking firmware. The updater now retains a healthy connection, publishes fresh readback values to the main controller and rearms disconnect handling for subsequent remote events. Reconnection reuses the same permitted device without invoking a new chooser automatically. Post-transfer verification has a 60-second time budget; individual stalled GATT operations may still close the link to stop queued operations safely. This does not remove system bonding.
+
+Diagnostics now include reconnect attempts, actual firmware/model/battery readbacks, Bluetooth error names, completion state and whether a disconnect was forced. Frame transmission remains separate from verified installation. A wrong/unchanged target cannot be reported as a confirmed version change.
+
+The supplied Android report was captured during `verifying` after 100% transmission. Both its last-read version and selected local target were V0.0.16, and it contained no final verification result or observable Android bond state. It does not prove deletion of system pairing keys. Web Bluetooth site permission, GATT connectivity and OS bonding remain distinct. No unpair/forget command is implemented or added.
+
+Telink's SDK describes bonding keys as separately stored flash data and provides firmware-side bonding erase/storage APIs: https://doc.telink-semi.cn/doc/en/software/res/sdk/ble/b80_ble_single_connection_en/b80_ble_single_connection_en/. Whether a particular firmware image resets those keys cannot be determined from this browser report. This release addresses the confirmed application disconnect and improves evidence for any remaining issue; no physical remote firmware installation was performed during this work.
