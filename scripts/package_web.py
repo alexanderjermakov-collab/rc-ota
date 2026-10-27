@@ -11,13 +11,13 @@ version = json.loads((root / 'docs/version.json').read_text(encoding='utf-8'))['
 out = root / 'build'
 out.mkdir(exist_ok=True)
 html = (root / 'docs/index.html').read_text(encoding='utf-8')
-css = (root / 'docs/style.css').read_text(encoding='utf-8')
+css = (root / 'docs/mobile.css').read_text(encoding='utf-8')
 hashes = []
 
 def digest(value):
     return "'sha256-" + base64.b64encode(hashlib.sha256(value.encode('utf-8')).digest()).decode() + "'"
 
-html = re.sub(r'<link rel="stylesheet" href="style.css[^\"]*">', lambda _: '<style>' + css + '</style>', html)
+html = re.sub(r'<link rel="stylesheet" href="(?:style|mobile).css[^\"]*">', lambda _: '<style>' + css + '</style>', html)
 
 def inline(match):
     code = (root / 'docs' / match.group(1)).read_text(encoding='utf-8')
@@ -40,9 +40,9 @@ archive = out / f'RC-OTA-HTML-{version}.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output:
     output.write(standalone, standalone.name)
     output.writestr('README.txt', readme)
-    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js']:
+    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js', 'simple-ui.js', 'mobile.css']:
         output.write(root / 'docs' / name, 'web/' + name)
 with zipfile.ZipFile(archive) as output:
     assert output.testzip() is None
-assert len(hashes) == 7 and '<script src=' not in html
+assert len(hashes) == 8 and '<script src=' not in html
 print('HTML and ZIP verified:', version)
