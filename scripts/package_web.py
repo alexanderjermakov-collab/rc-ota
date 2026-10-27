@@ -42,9 +42,9 @@ archive = out / f'RC-OTA-HTML-{version}.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output:
     output.write(standalone, standalone.name)
     output.writestr('README.txt', readme)
-    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js', 'simple-ui.js', 'mobile.css', 'sharp-logo.svg', 'ASSETS.md']:
+    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js', 'simple-ui.js', 'mobile.css', 'sharp-logo.svg', 'ASSETS.md', 'firmware-store.js']:
         output.write(root / 'docs' / name, 'web/' + name)
 with zipfile.ZipFile(archive) as output:
     assert output.testzip() is None
-assert len(hashes) == 8 and '<script src=' not in html
+assert len(hashes) == 9 and '<script src=' not in html
 print('HTML and ZIP verified:', version)

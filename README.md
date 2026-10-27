@@ -6,9 +6,13 @@ Firmware updates and diagnostics for SHARP remote controls.
 
 **[Download for Windows](https://github.com/alexanderjermakov-collab/rc-ota/releases/download/v0.12.0/RC-OTA-Windows-0.12.0.zip)** · [Release notes](RELEASE-v0.12.0.md)
 
-## Phone interface 0.14.0
+## Phone interface 0.15.0
 
 Remote Control Software Upgrade opens directly into one compact screen, in English by default with a persistent English / Polski selector: connect/read the remote, view model/version/battery, choose firmware from phone or server, confirm and install. Help contains instructions and diagnostic export. About contains only name, version, author and release date. The official Sharp logo is served locally. Local file selection prepares the BIN automatically; it never starts installation.
+
+## Sequential phone updates
+
+Select and approve a BIN once. After each unit, press Next remote, select the next unit in Chrome, then Update remote. The exact-model BIN and its approval are retained; IndexedDB keeps them across reloads where available. Choosing a new BIN requires new approval. Forget closes the link and revokes site access where Chrome supports it, while retaining the BIN. Android system unpairing requires Android Bluetooth settings.
 
 ## Use the app
 
