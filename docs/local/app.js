@@ -29,7 +29,7 @@ function render(s){
  const platform=s.platform||'Android';
  if(platform==='Windows'){
   $('intro').textContent='Read your paired SHARP remote through Windows. Upgrade Firmware checks the package first; installation requires your separate confirmation.';
-  $('otaNotice').textContent='Experimental Windows OTA. A verified newer package and a supported remote are required before Install on remote becomes available.';
+  $('otaNotice').textContent='Telink Legacy OTA only. Extended OTA and Secure Boot are unsupported. Use firmware for your exact model; server updates must be newer.';
  }
  $('upgradePanel').hidden=platform!=='Windows';
  $('localInstallControls').hidden=platform!=='Windows';

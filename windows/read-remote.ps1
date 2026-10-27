@@ -44,7 +44,7 @@ if ($Action -eq 'list') {
         $items=Await-WinRT ([Windows.Devices.Enumeration.DeviceInformation]::FindAllAsync($selector)) ([Windows.Devices.Enumeration.DeviceInformationCollection])
         $remotes=@()
         foreach($item in $items) {
-            if($item.Name -notmatch '^SHARP(?: SOLAR)? RCU$'){continue}
+            if($item.Name -notmatch '^SHARP(?:\s|$)'){continue}
             $remote=$null
             try {
                 $remote=Await-WinRT ([Windows.Devices.Bluetooth.BluetoothLEDevice]::FromIdAsync($item.Id)) ([Windows.Devices.Bluetooth.BluetoothLEDevice])
@@ -64,7 +64,7 @@ try {
     if ($null -eq $device) { throw 'Windows did not return the paired remote.' }
     $report.name=$device.Name
     $report.paired=$device.DeviceInformation.Pairing.IsPaired
-    if(-not $report.paired -or $device.Name -notmatch '^SHARP(?: SOLAR)? RCU$'){throw 'Select a supported SHARP remote already paired in Windows.'}
+    if(-not $report.paired -or $device.Name -notmatch '^SHARP(?:\s|$)'){throw 'Select a supported SHARP remote already paired in Windows.'}
     $report.connectionStatus=[string]$device.ConnectionStatus
     $cacheMode=[Windows.Devices.Bluetooth.BluetoothCacheMode]::Cached
     $report.discoveryMode=[string]$cacheMode

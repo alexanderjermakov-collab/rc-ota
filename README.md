@@ -4,7 +4,7 @@ Firmware updates and diagnostics for SHARP remote controls.
 
 **Website:** https://alexanderjermakov-collab.github.io/rc-ota/
 
-**[Download for Windows](https://github.com/alexanderjermakov-collab/rc-ota/releases/download/v0.11.0/RC-OTA-Windows-0.11.0.zip)** · [Release notes](RELEASE-v0.11.0.md)
+**[Download for Windows](https://github.com/alexanderjermakov-collab/rc-ota/releases/download/v0.12.0/RC-OTA-Windows-0.12.0.zip)** · [Release notes](RELEASE-v0.12.0.md)
 
 ## Use the app
 
@@ -16,11 +16,11 @@ Server updates require a newer version. Compatible local BIN files support upgra
 
 ## Supported hardware
 
-Windows installation is currently enabled for **AN2101A-20UM021-001** using Telink OTA. A server upgrade **V0.0.2 → V0.0.3** and local downgrade **V0.0.3 → V0.0.2** were confirmed on one physical remote by fresh firmware/software reads. This is a preview release; broader hardware compatibility has not been established.
+Windows and supported Android Chrome browsers can install firmware on SHARP remotes exposing the OEM **Telink Legacy** OTA read/write service. This includes the AN2303B-2UM-001 preparation/transfer path; it has not yet been hardware validated. Extended OTA and Secure Boot are unsupported. A matching service does not prove firmware-image or bootloader compatibility. **AN2101A-20UM021-001** remains the hardware-tested baseline. A server upgrade **V0.0.2 → V0.0.3** and local downgrade **V0.0.3 → V0.0.2** were confirmed on one physical remote by fresh firmware/software reads. This is a preview release; broader hardware compatibility has not been established.
 
 Before writing, the app checks the live model, installed version, battery (at least 30%, matching the OEM Telink default), supported service and cached file hashes. After transmission it reconnects and reads the firmware version. An unchanged or unknown target version cannot independently prove the installed image's identity; the app reports that limit.
 
-The public website provides downloads and read-only browser diagnostics. It does not give a hosted page native Windows Bluetooth access or flash a remote by itself. The [Android 0.7.0 bridge](https://github.com/alexanderjermakov-collab/rc-ota/releases/tag/v0.7.0) is a separate diagnostics app.
+The website includes **Update in Chrome**: connect the remote in a supported Android Chrome browser, prepare a server update or a local BIN, check the compatibility confirmation and press **Install firmware**. Web Bluetooth writes directly to the selected remote. Server downloads require browser HTTPS/CORS access. Local filenames must identify the exact model, for example `AN2303B-2UM-001_V0.0.15.bin`; local files stay on the device. Windows users can use the native Windows app. The [Android 0.7.0 bridge](https://github.com/alexanderjermakov-collab/rc-ota/releases/tag/v0.7.0) is a separate diagnostics app.
 
 ## Privacy and network access
 

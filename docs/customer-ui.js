@@ -11,8 +11,8 @@ function selectSource(value){
   const node=byId(id);if(node){node.classList.toggle('selected',selected);node.setAttribute('aria-selected',String(selected));}
  }
 }
-function version(value){const normalized=String(value||'').replace(/[FWVv.]/g,'');return /^\d+$/.test(normalized)?BigInt(normalized):null}
-function actionLabel(installed,target){const a=version(installed),b=version(target);return a!==null&&b!==null?(b<a?'Downgrade':b===a?'Reinstall':'Update'):'Install'}
+function version(value){const normalized=String(value||'').replace(/^[FWVv]+/,'');return /^\d+(?:\.\d+)*$/.test(normalized)?normalized.split('.').map(BigInt):null}
+function actionLabel(installed,target){const a=version(installed),b=version(target);if(!a||!b)return 'Install';for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0n)!==(b[i]||0n))return (b[i]||0n)<(a[i]||0n)?'Downgrade':'Update'}return 'Reinstall'}
 function friendlyError(message){
  if(/do not match exactly|filename/i.test(message))return 'The server’s file listing is inconsistent. Try again later or use a local firmware file.';
  if(/md5|checksum|changed during upload/i.test(message))return 'The file check failed. Choose the correct firmware file and try again.';
@@ -61,5 +61,6 @@ const server=byId('serverMode'),local=byId('localMode');
 if(server)server.addEventListener('click',()=>selectSource('server'));
 if(local)local.addEventListener('click',()=>selectSource('local'));
 const shortcut=byId('chooseLocalFirmware');if(shortcut)shortcut.addEventListener('click',()=>{selectSource('local');byId('localFirmwarePanel')?.scrollIntoView({behavior:'smooth',block:'start'})});
+if(typeof location!=='undefined'&&location.hash==='#browserTools'){const tools=byId('browserTools');if(tools)tools.open=true;}
 const browser=byId('openBrowserTools');if(browser)browser.addEventListener('click',()=>{const tools=byId('browserTools');if(tools)tools.open=true;});
 })();

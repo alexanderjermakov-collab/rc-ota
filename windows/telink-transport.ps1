@@ -72,7 +72,7 @@ try {
   if(-not $fullPath.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase)){throw 'Firmware must be a package verified by this application.'}
   if($ExpectedSha256 -notmatch '^[a-fA-F0-9]{64}$' -or $ExpectedMd5 -notmatch '^[a-fA-F0-9]{32}$'){throw 'Verified package hashes are required.'}
   $firmware=[IO.File]::ReadAllBytes($fullPath)
-  if($firmware.Length -lt 16 -or $firmware.Length -gt 1048576){throw 'Firmware must be between 16 bytes and 1 MiB for this Telink packet format.'}
+  if($firmware.Length -lt 16 -or $firmware.Length -gt 1044480){throw 'Firmware exceeds the Telink Legacy packet index range.'}
   $sha=[Security.Cryptography.SHA256]::Create();$md5=[Security.Cryptography.MD5]::Create()
   try{if((Hex ($sha.ComputeHash($firmware))) -ne $ExpectedSha256 -or (Hex ($md5.ComputeHash($firmware))) -ne $ExpectedMd5){throw 'Cached firmware hashes no longer match the verified package.'}}finally{$sha.Dispose();$md5.Dispose()}
   $count=[int][Math]::Ceiling($firmware.Length/16.0)
@@ -83,7 +83,7 @@ try {
  }
  if($Address -notmatch '^[a-fA-F0-9]{12}$' -or [string]::IsNullOrWhiteSpace($ExpectedModel)){throw 'An exact paired remote address and model are required.'}
  $device=Await-WinRT ([Windows.Devices.Bluetooth.BluetoothLEDevice]::FromBluetoothAddressAsync([Convert]::ToUInt64($Address,16))) ([Windows.Devices.Bluetooth.BluetoothLEDevice])
- if(-not $device -or -not $device.DeviceInformation.Pairing.IsPaired -or $device.Name -notmatch '^SHARP(?: SOLAR)? RCU$'){throw 'The selected SHARP remote is not paired in Windows.'}
+ if(-not $device -or -not $device.DeviceInformation.Pairing.IsPaired -or $device.Name -notmatch '^SHARP(?:\s|$)'){throw 'The selected SHARP remote is not paired in Windows.'}
  $result=Await-WinRT ($device.GetGattServicesAsync([Windows.Devices.Bluetooth.BluetoothCacheMode]::Cached)) ([Windows.Devices.Bluetooth.GenericAttributeProfile.GattDeviceServicesResult])
  if([string]$result.Status -ne 'Success'){throw ('Service discovery failed: '+$result.Status)}
  $opened=@($result.Services)

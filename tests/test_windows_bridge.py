@@ -168,6 +168,41 @@ class BridgeTests(unittest.TestCase):
         self.assertIn('No upgrade',bridge.transfer_blocker(mod.SUPPORTED_OTA_MODEL,'V0.0.2',dict(version='0.0.2',bytes=100)))
         self.assertIn('No upgrade',bridge.transfer_blocker(mod.SUPPORTED_OTA_MODEL,'V0.0.3',dict(version='0.0.2',bytes=100)))
 
+    def test_solar_and_other_models_use_live_probe_instead_of_single_model_allowlist(self):
+        for model in ['AN2303B-2UM-001', 'AN9999-TEST']:
+            self.assertEqual(mod.Bridge.transfer_blocker(model, 'V0.0.15', dict(source='local', model=model, bytes=100)), '')
+            self.assertEqual(mod.Bridge.transfer_blocker(model, 'V0.0.15', dict(source='server', model=model, version='0.1.0', bytes=100)), '')
+            self.assertIn('different', mod.Bridge.transfer_blocker(model, 'V0.0.15', dict(source='local', model='OTHER', bytes=100)))
+            self.assertIn('size', mod.Bridge.transfer_blocker(model, 'V0.0.15', dict(source='local', model=model, bytes=mod.TELINK_MAX_BYTES+1)))
+
+    def test_new_model_local_files_must_identify_exact_model(self):
+        data=bytes(range(32));encoded=base64.b64encode(data).decode();sha=hashlib.sha256(data).hexdigest();model='AN2303B-2UM-001'
+        with tempfile.TemporaryDirectory() as directory:
+            for filename in [model+'_V0.0.14.bin', model+'.bin']:
+                package=mod.local_package(filename, encoded, sha, model, '', directory)
+                self.assertEqual(package['model'], model)
+            with self.assertRaisesRegex(ValueError, 'exact model'):
+                mod.local_package('firmware.bin', encoded, sha, model, '', directory)
+
+    def test_solar_preparation_probes_without_writing_and_rejects_missing_ota(self):
+        data=bytes(range(32));model='AN2303B-2UM-001';writes=[];probes=[]
+        def probe(*args):
+            probes.append(args)
+            raise RuntimeError('Required Telink OTA characteristic is absent')
+        with tempfile.TemporaryDirectory() as directory:
+            bridge=mod.Bridge(prober=probe, writer=lambda *args:writes.append(args), cache_dir=directory)
+            bridge.state.update(selectedAddress='112233445566',verified=True,dataStale=False,metadata=dict(model=model,firmware='V0.0.15'))
+            bridge.prepare_local(dict(filename=model+'_V0.0.14.bin',content=base64.b64encode(data).decode(),sha256=hashlib.sha256(data).hexdigest()))
+            until=time.monotonic()+2
+            while bridge.state['upgrade']['state']=='checking' and time.monotonic()<until:time.sleep(.005)
+            self.assertEqual(len(probes),1);self.assertEqual(writes,[])
+            self.assertFalse(bridge.state['upgrade']['transferAvailable'])
+            self.assertIn('absent',bridge.state['upgrade']['message'])
+
+    def test_numeric_version_components_do_not_confuse_015_and_010(self):
+        self.assertLess(mod.revision_number('V0.0.15'),mod.revision_number('V0.1.0'))
+        self.assertEqual(mod.revision_number('V1.0.0'),mod.revision_number('1'))
+
     def test_transfer_success_requires_post_install_live_version_read(self):
         address='AABBCCDDEEFF';model=mod.SUPPORTED_OTA_MODEL;events=[]
         bridge=mod.Bridge(reader=lambda *args:dict(readings=[dict(field='model',value=model,status='Success'),dict(field='firmware',value='V0.0.3',status='Success')]),writer=lambda *args:events.append(args[:4]))

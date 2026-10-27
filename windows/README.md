@@ -1,4 +1,4 @@
-# RC OTA 0.11.0 on Windows
+# RC OTA 0.12.0 on Windows
 
 Customer download: extract the entire Windows ZIP and open **RC OTA.exe**. Python is bundled. Source download: use **Start RC OTA.cmd** with Python 3.10+ and Windows PowerShell 5.1. Pair the remote in Windows before reading it; Chrome opens the interface automatically.
 
@@ -14,7 +14,7 @@ Ordinary reads and server checks never write firmware. Server checks fetch manuf
 
 The **Upgrade Firmware** button prepares a package: it refreshes the exact model catalogue, requires the BIN URL and metadata filename to agree (including case), downloads up to 16 MiB and verifies the server MD5. Verified bytes are cached under `.runtime/firmware/` with a SHA-256 filename. A successful check does not establish a package signature's authenticity.
 
-An experimental Windows Telink OTA sender is implemented for **AN2101A-20UM021-001**. It uses the protocol recovered from the OEM Android Device.java / OtaPacketParser.java: prepare 00ff, start 01ff, 16-byte payloads in 20-byte frames with a 16-bit sequence and CRC-16/MODBUS, a flow-control read every eight non-final packets, and the end frame with the final index and its complement. Packets are limited to a 1 MiB image. The overall transfer timeout is 300 seconds.
+An experimental Windows Telink Legacy OTA sender supports SHARP models after a live exact-model, battery and OTA-service probe. **AN2101A-20UM021-001** is the hardware-tested baseline; AN2303B-2UM-001 and other models require hardware validation. Extended OTA and Secure Boot are unsupported. It uses the protocol recovered from the OEM Android Device.java / OtaPacketParser.java: prepare 00ff, start 01ff, 16-byte payloads in 20-byte frames with a 16-bit sequence and CRC-16/MODBUS, a flow-control read every eight non-final packets, and the end frame with the final index and its complement. Images are limited to 1,044,480 bytes so data packet indices cannot collide with OTA commands. The overall transfer timeout is 300 seconds.
 
 Server installation was verified on one physical AN2101A-20UM021-001: V0.0.2 → V0.0.3, with firmware and software versions confirmed by a fresh read. Local downgrade V0.0.3 → V0.0.2 was also confirmed on the same remote after the user initiated installation from the UI. Same-version reinstall logic is tested with simulated writes. The build remains experimental.
 
@@ -24,7 +24,7 @@ After successful preparation, a strictly newer server version, no unresolved MAC
 
 Select **Local BIN upgrade / downgrade**, choose a compatible `.bin` (16 bytes–1 MiB), then select **Prepare local firmware**. Standard `MODEL_V0.0.2.bin` filenames supply the target version automatically; for other filenames you can enter the intended version or leave it blank. Local files go only to the authenticated loopback bridge, never to the manufacturer server.
 
-Local installation bypasses the newer-version rule: older, newer and identical versions are allowed. It still checks the live model, compatible OTA service, battery, file size and unchanged file hashes. A filename explicitly identifying a different model is rejected. SHA-256 verifies the uploaded bytes; the locally calculated MD5 is not presented as a manufacturer's checksum or proof of compatibility. Confirm that the raw BIN is for the selected model, then select **Install on remote**.
+Local installation bypasses the newer-version rule: older, newer and identical versions are allowed. It still checks the live model, compatible OTA service, battery, file size and unchanged file hashes. A filename explicitly identifying a different model is rejected. Models other than the original AN2101A baseline require `EXACT_MODEL_Vversion.bin` or `EXACT_MODEL.bin`; an unlabelled file cannot be prepared. SHA-256 verifies the uploaded bytes; the locally calculated MD5 is not presented as a manufacturer's checksum or proof of compatibility. Confirm that the raw BIN is for the selected model, then select **Install on remote**.
 
 The same tested Telink sender handles both sources. Local preparation does not call the server catalogue. If the intended version is known and differs from the previous version, a matching live read confirms the result, including downgrades. With no known target version, or a same-version reinstall, the UI displays the actual version read back but does not claim that the exact image identity was independently verified. Server installation continues to require a newer version.
 

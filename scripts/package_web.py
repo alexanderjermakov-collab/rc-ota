@@ -31,17 +31,18 @@ html = re.sub(r'(<meta http-equiv="Content-Security-Policy" content=")[^\"]*', l
 standalone = out / f'RC-OTA-{version}.html'
 standalone.write_text(html, encoding='utf-8', newline='\n')
 readme = f'''RC OTA HTML {version}
-This archive contains the public download page and read-only browser diagnostics.
-Firmware installation requires the separate Windows app. The Android 0.7.0 release remains a separate diagnostics bridge.
-Standalone HTML / HTTPS hosting uses Web Bluetooth; it does not install a native bridge or flash a remote.
+This archive contains the download page and Telink Legacy browser updater.
+Serve over HTTPS and open in a supported Chrome browser (Android recommended).
+Compatible SHARP remotes can use server or exact-model local BIN files. Other Telink protocols and Secure Boot are unsupported. Windows can use the separate native app.
+AN2303B browser transfers have not yet been hardware validated.
 '''
 archive = out / f'RC-OTA-HTML-{version}.zip'
 with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as output:
     output.write(standalone, standalone.name)
     output.writestr('README.txt', readme)
-    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json']:
+    for name in ['index.html', 'style.css', 'customer-ui.js', 'local-bridge.js', 'app.js', 'ota.js', 'ota-client.js', 'version.json', 'telink-ota.js', 'web-upgrade.js']:
         output.write(root / 'docs' / name, 'web/' + name)
 with zipfile.ZipFile(archive) as output:
     assert output.testzip() is None
-assert len(hashes) == 5 and '<script src=' not in html
+assert len(hashes) == 7 and '<script src=' not in html
 print('HTML and ZIP verified:', version)

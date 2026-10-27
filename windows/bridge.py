@@ -27,8 +27,10 @@ DEFAULT_RUNTIME = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'RC O
 RUNTIME_DIR = Path(os.environ.get('RCOTA_RUNTIME_DIR', str(DEFAULT_RUNTIME)))
 FIRMWARE_DIR = RUNTIME_DIR / 'firmware'
 HOST = 'firmware.umc-poland.com'
-VERSION = '0.11.0'
+VERSION = '0.12.0'
 SUPPORTED_OTA_MODEL = 'AN2101A-20UM021-001'
+# The model above is the hardware-tested baseline, not a transfer allowlist.
+TELINK_MAX_BYTES = 0xff00 * 16  # Packet indices 0xff00+ are reserved for commands.
 
 
 def telink_crc(data):
@@ -41,7 +43,7 @@ def telink_crc(data):
 
 
 def telink_packet(firmware, index):
-    if not 0 <= index < (len(firmware) + 15) // 16 or index > 65535:
+    if not 0 <= index < (len(firmware) + 15) // 16 or index >= 0xff00:
         raise ValueError('Invalid Telink packet index.')
     body = struct.pack('<H', index) + firmware[index*16:(index+1)*16].ljust(16, b'\xff')
     return body + struct.pack('<H', telink_crc(body))
@@ -106,8 +108,13 @@ def write_telink(address, model, installed, package, on_progress):
 
 
 def revision_number(value):
-    normalized = re.sub(r'[FWVv.]', '', str(value))
-    return int(normalized) if normalized.isdigit() else None
+    normalized = re.sub(r'^[FWVv]+', '', str(value))
+    if not re.fullmatch(r'\d+(?:\.\d+)*', normalized):
+        return None
+    parts = [int(part) for part in normalized.split('.')]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)
 
 
 def local_package(filename, content, sha256, model, version, cache_dir):
@@ -131,6 +138,8 @@ def local_package(filename, content, sha256, model, version, cache_dir):
     if not isinstance(version, str) or (version and not re.fullmatch(r'[vV]?\d+(?:\.\d+)*', version)) or len(version) > 40:
         raise ValueError('Enter a numeric target version, such as V0.0.2, or leave it blank.')
     named = re.fullmatch(r'(.+)_[vV](\d+(?:\.\d+)*)\.bin', filename, flags=re.IGNORECASE)
+    if model != SUPPORTED_OTA_MODEL and not named and filename != model + '.bin':
+        raise ValueError('For this remote, use a BIN named for its exact model: '+model+'_V0.0.15.bin or '+model+'.bin')
     if named:
         if named[1].casefold() != model.casefold():
             raise ValueError('The BIN filename identifies a different remote model: '+named[1])
@@ -470,15 +479,17 @@ class Bridge:
 
     @staticmethod
     def transfer_blocker(model, installed, package):
-        if model != SUPPORTED_OTA_MODEL:
-            return 'Windows OTA transfer is not enabled for this model.'
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_. -]{0,79}', model):
+            return 'A live exact remote model is required.'
+        if package.get('model') and package['model'] != model:
+            return 'The firmware package identifies a different remote model.'
         if package.get('source') != 'local':
             current, available = revision_number(installed), revision_number(package.get('version', ''))
             if current is None or available is None:
                 return 'Firmware versions could not be compared.'
             if available <= current:
                 return 'The server version is the same as, or older than, the installed firmware. No upgrade is needed.'
-        if not 16 <= package.get('bytes', 0) <= 1048576:
+        if not 16 <= package.get('bytes', 0) <= TELINK_MAX_BYTES:
             return 'Firmware size is not supported by this Telink OTA packet format.'
         return ''
 
