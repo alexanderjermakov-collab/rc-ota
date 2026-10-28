@@ -1,0 +1,13 @@
+# Remote Control Software Upgrade 0.16.0
+
+Removed the five-attempt post-OTA reconnect loop. After sending firmware, the app performs at most one version read on an existing link and never calls GATT connect automatically. If the link is closed, the app unlocks immediately after the restart wait and shows Reconnect. An explicit reconnect/read of the same device can complete version verification. The BIN and exact-model batch approval remain retained.
+
+Help now contains three numbered sections with a continuous sequence: pairing (1–4), file selection (5–7), and upgrade (8–11), in English and Polish. Pairing instructions explicitly say to hold Back + Home together for 3 seconds until the red LED flashes, select/confirm the remote in Android Bluetooth, then grant Chrome access and wait for the exact model/version/battery. Android OS pairing remains distinct from site permission and a verified GATT read.
+
+After Forget, the next explicit Connect always opens a fresh device chooser, including in Chrome versions where forget() cannot revoke site permission. A stale previously permitted device cannot silently be reused. Forget also remains available after a GATT disconnect while a device is still selected. Current model and firmware must both be freshly read before reporting the web connection as verified.
+
+The supplied 0.15.0 report successfully read AN2303-2UM-001 (FWV0.03, hardware v00) several times. Its cached BIN was AN2303B-2UM-001_V0.0.16.bin. The block was an exact-model firmware mismatch, not a failed device read. The UI now identifies connected model and cached-file model explicitly instead of presenting this as a generic connection problem. This block is detected without another unnecessary GATT probe. The observed approximately five-second link lifetime is not enough to identify a controller/OS bonding failure; the browser exposes no controller disconnect reason. New diagnostics include link-open/close timings and connection errors without claiming that OS bonding was verified.
+
+The manufacturer catalogue currently offers AN2303-2UM-001 version 0.1.6 under the original name RC2366Y12_RC_OTA_8275_SDK65_F769_AN2303_V0.1.6_20251017_Telink.bin. That exact vendor filename is accepted for that exact model only if its bytes match catalogue MD5 faebec0310cc18ac9e27aee56de357a6. The public binary was validated offline (103,104 bytes); no Bluetooth writes were made. Legacy FWV revision counters are compared as in the OEM updater, while standard V dotted versions retain component-based comparison. AN2303 and AN2303B are not treated as interchangeable.
+
+Manufacturer catalogue: https://firmware.umc-poland.com/AN2303-2UM-001/

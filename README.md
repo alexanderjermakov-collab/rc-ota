@@ -6,9 +6,11 @@ Firmware updates and diagnostics for SHARP remote controls.
 
 **[Download for Windows](https://github.com/alexanderjermakov-collab/rc-ota/releases/download/v0.12.0/RC-OTA-Windows-0.12.0.zip)** · [Release notes](RELEASE-v0.12.0.md)
 
-## Phone interface 0.15.0
+## Phone interface 0.16.0
 
 Remote Control Software Upgrade opens directly into one compact screen, in English by default with a persistent English / Polski selector: connect/read the remote, view model/version/battery, choose firmware from phone or server, confirm and install. Help contains instructions and diagnostic export. About contains only name, version, author and release date. The official Sharp logo is served locally. Local file selection prepares the BIN automatically; it never starts installation.
+
+After OTA there is no automatic reconnect loop. If the remote restarts and disconnects, follow Help: hold Back + Home for 3 seconds until the red LED flashes, confirm Android pairing, then use Reconnect to read the installed version. Help has separate numbered pairing, file-selection and upgrade instructions.
 
 ## Sequential phone updates
 
