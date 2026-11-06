@@ -212,7 +212,7 @@ const strings={
 };
 let language='en';try{if(localStorage.getItem('rcota-language')==='pl')language='pl';}catch{}
 let remote=window.RcWebRemote?.context()||{},upgrade={},file=null,pro=false,serverInfo=null;
-const t=(key,values={})=>Object.entries(values).reduce((text,[name,value])=>text.replaceAll('{'+name+'}',String(value)),strings[language][key]||strings.en[key]||key);
+const t=(key,values={})=>Object.entries(values).reduce((text,[name,value])=>text.replaceAll('{'+name+'}',String(value)),strings[language][key]??strings.en[key]??key);
 function setLanguage(value){language=value==='pl'?'pl':'en';document.documentElement.lang=language;$('language').value=language;try{localStorage.setItem('rcota-language',language);}catch{}
  for(const node of document.querySelectorAll('[data-i18n]'))node.textContent=t(node.getAttribute('data-i18n'));
  for(const node of document.querySelectorAll('[data-i18n-aria]'))node.setAttribute('aria-label',t(node.getAttribute('data-i18n-aria')));

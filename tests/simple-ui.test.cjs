@@ -27,3 +27,5 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
  s.node('proButton').onclick();
  assert.equal(s.node('proOta').hidden,true);
 });
+
+test('the initial screen hides the empty pairing hint',()=>{const s=setup();assert.equal(s.node('screenMessage').hidden,true);assert.equal(s.node('screenMessage').textContent,'');});
