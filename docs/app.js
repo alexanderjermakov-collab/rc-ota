@@ -22,7 +22,7 @@ async function savedRemote(){
  return previous;
 }
 function noteLinkClosed(){connectionTelemetry={...connectionTelemetry,phase:'disconnected',disconnectedAt:new Date().toISOString(),linkDurationMs:connectionTelemetry.openedAt?Date.now()-Date.parse(connectionTelemetry.openedAt):null,controllerReasonAvailable:false};log('GATT link closed: '+JSON.stringify(connectionTelemetry));}
-function notifySimpleUI(){window.RcSimpleUI?.remote({connected,busy,metadata:{...metadata},readAt,message:$('status').textContent,connectionError,nextSelection,freshSelection,hasDevice:!!device||!!permittedDevice||!!savedId,locked:webOtaBusy});}
+function notifySimpleUI(){window.RcSimpleUI?.remote({connected,busy,metadata:{...metadata},native:!!port,freshFields:[...freshFields],readAt,message:$('status').textContent,connectionError,nextSelection,freshSelection,hasDevice:!!device||!!permittedDevice||!!savedId,locked:webOtaBusy});}
 function pairing(value){$('pairing').textContent=value}
 
 function log(message){entries.push({time:new Date().toISOString(),message});if(entries.length>200)entries.shift();$('log').textContent=entries.map(e=>`${e.time.slice(11,19)}  ${e.message}`).join('\n');console.info('[RCOTA]',message)}
@@ -85,6 +85,17 @@ async function readInfo(server,id) {
     if(error.gattTimeout||!device?.gatt.connected)throw error;
    }
   }
+  try {
+   const pnp=await gattStep(()=>service.getCharacteristic(0x2a50),id,'Finding PnP ID');
+   const value=await gattStep(()=>pnp.readValue(),id,'Reading PnP ID');
+   if(value.byteLength===7&&[1,2].includes(value.getUint8(0))){
+    recordRead('vid',value.getUint16(1,true));
+    recordRead('pid',value.getUint16(3,true));
+   }
+  } catch(error) {
+   current(id);
+   if(error.gattTimeout||!device?.gatt.connected)throw error;
+  }
  } catch(error) {
   current(id);log('Device information unavailable: '+error.message);
   if(error.gattTimeout||!device?.gatt.connected)throw error;
@@ -145,10 +156,10 @@ async function forgetRemote(){
  catch(error){result='Browser forget failed: '+error.message+'. Connection closed; remove device access in Chrome settings if needed.';}
  finally{busy=false;$('services').textContent='No remote selected.';pairing('No remote selected. System pairing is not exposed by Web Bluetooth.');render();state(false,result);window.dispatchEvent?.(new CustomEvent('rcota-remote-forgotten'));}
 }
-window.RcWebRemote={requireSelection:()=>{freshSelection=true;},connect:()=>connectRemote(nextSelection||freshSelection),next:nextRemote,forget:forgetRemote,resumeAfterUpgrade:resumeUpgradeReadback,logEvent:log,read:readCurrentRemote,context:()=>({device,metadata:{...metadata},connected:connected&&!busy&&freshFields.has('model')&&freshFields.has('firmware'),native:!!port,nextSelection,freshSelection,connectionError,hasDevice:!!device||!!permittedDevice||!!savedId,busy,locked:webOtaBusy,readAt,message:$('status').textContent}),lock:value=>{webOtaBusy=value;for(const id of ['choose','allDevices','file'])$(id).disabled=value;$('connect').disabled=value||connected||busy;$('disconnect').disabled=value||(!connected&&!busy);notifySimpleUI();}};
-$('export').onclick=()=>{const data={version:'0.16.0',exportedAt:new Date().toISOString(),transport:port?'Android BLE Bridge':navigator.bluetooth?'Web Bluetooth':'Unavailable',secureContext:isSecureContext,userAgent:navigator.userAgent,connected,pairingState:$('pairing').textContent,connectionTelemetry,connectionError,selectionRequiresChooser:freshSelection||nextSelection,savedDeviceAvailable:!!savedId,inPagePermissionAvailable:!!permittedDevice,lastReadMetadata,readAt,freshFields:[...freshFields],upgrade:window.RcWebUpgrade?.diagnostics(),browserRestore:restoreDiagnostic,metadata,services,entries,connectionMeaning:'GATT services verified; Android bond state not exposed by Web Bluetooth'};if(port){port.postMessage(JSON.stringify({type:'export',value:data}));return}const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rc-ota-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+window.RcWebRemote={requireSelection:()=>{freshSelection=true;},connect:()=>connectRemote(nextSelection||freshSelection),next:nextRemote,forget:forgetRemote,resumeAfterUpgrade:resumeUpgradeReadback,logEvent:log,read:readCurrentRemote,context:()=>({device,metadata:{...metadata},connected:connected&&!busy&&freshFields.has('model')&&freshFields.has('firmware'),native:!!port,freshFields:[...freshFields],nextSelection,freshSelection,connectionError,hasDevice:!!device||!!permittedDevice||!!savedId,busy,locked:webOtaBusy,readAt,message:$('status').textContent}),lock:value=>{webOtaBusy=value;for(const id of ['choose','allDevices','file'])$(id).disabled=value;$('connect').disabled=value||connected||busy;$('disconnect').disabled=value||(!connected&&!busy);notifySimpleUI();}};
+$('export').onclick=()=>{const data={version:'0.17.0',exportedAt:new Date().toISOString(),transport:port?'Android BLE Bridge':navigator.bluetooth?'Web Bluetooth':'Unavailable',secureContext:isSecureContext,userAgent:navigator.userAgent,connected,pairingState:$('pairing').textContent,connectionTelemetry,connectionError,selectionRequiresChooser:freshSelection||nextSelection,savedDeviceAvailable:!!savedId,inPagePermissionAvailable:!!permittedDevice,lastReadMetadata,readAt,freshFields:[...freshFields],upgrade:window.RcWebUpgrade?.diagnostics(),browserRestore:restoreDiagnostic,metadata,services,entries,connectionMeaning:'GATT services verified; Android bond state not exposed by Web Bluetooth'};if(port){port.postMessage(JSON.stringify({type:'export',value:data}));return}const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rc-ota-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 window.RcNative={available:()=>!!port,send:message=>port?.postMessage(JSON.stringify(message))};
-$('transport').textContent=navigator.bluetooth&&isSecureContext?'Web Bluetooth available':'Web Bluetooth unavailable';$('environment').textContent=`Version 0.16.0 · Secure connection: ${isSecureContext?'yes':'no'} · Web Bluetooth: ${navigator.bluetooth?'available':'unavailable'}`;render();pairing('System pairing status is not exposed by Web Bluetooth');
+$('transport').textContent=navigator.bluetooth&&isSecureContext?'Web Bluetooth available':'Web Bluetooth unavailable';$('environment').textContent=`Version 0.17.0 · Secure connection: ${isSecureContext?'yes':'no'} · Web Bluetooth: ${navigator.bluetooth?'available':'unavailable'}`;render();pairing('System pairing status is not exposed by Web Bluetooth');
 async function restore(){if(location.origin==='https://appassets.androidplatform.net'||port||busy||connected)return;const attemptRevision=revision;try{const previous=await savedRemote();if(port||busy||connected||revision!==attemptRevision)return;if(previous)await connectRemote(false,previous);else state(false,restoreDiagnostic.reason)}catch(e){log('Automatic reconnect unavailable: '+e.message)}}
 if(window.RcLocalBridge){$('environment').textContent='Local Android connection';const startLocal=()=>window.RcLocalBridge.start(receive);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startLocal,{once:true});else startLocal();}else setTimeout(restore,0);
 window.addEventListener('pagehide',()=>{revision++;device?.gatt.disconnect();port?.close()});

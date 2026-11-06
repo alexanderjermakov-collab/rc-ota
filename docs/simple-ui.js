@@ -6,6 +6,20 @@ const strings={
  "en": {
   "language": "Language",
   "help": "Help",
+  "pairFallback": "If Easy Pairing with the MIC button fails, hold Back + Home together for 3 seconds until the red LED flashes. Pair in Android Bluetooth, then press Connect in the app.",
+  "pairReset": "If pressing MIC does not put the remote into pairing mode, perform a factory reset following the instructions for your remote model, then try pairing again.",
+  "pairMissing": "If the remote is in pairing mode but missing from the app’s device list, remove that remote from the paired devices in your phone’s or computer’s Bluetooth settings. Put the remote into pairing mode again and press Connect.",
+  "password": "Password",
+  "wrongPassword": "Incorrect password.",
+  "unlockPro": "Unlock Pro",
+  "softwareVersion": "Software version",
+  "macUnavailable": "Unavailable in this browser",
+  "openOta": "Open OTA Info.txt",
+  "loadOta": "Open downloaded TXT",
+  "otaLoading": "Reading OTA Info.txt…",
+  "otaBlocked": "The browser could not read the server file. Open or download the original. You can then display the downloaded TXT here.",
+  "otaInvalid": "Could not open this TXT. Select an OTA Info.txt file up to 64 KB.",
+  "otaLocal": "From the selected TXT file. For display only.",
   "about": "About",
   "close": "Close",
   "remote": "Your remote",
@@ -34,7 +48,7 @@ const strings={
   "disconnected": "Not connected",
   "connecting": "Connecting…",
   "reading": "Reading the selected remote…",
-  "start": "Hold Back + Home for 3 s until the red LED flashes. Pair in Android Bluetooth, then press Connect.",
+  "start": "",
   "choose": "Information read. Choose firmware.",
   "historical": "Remote disconnected. Showing the last information read.",
   "preparing": "Preparing the file… Nothing is being installed.",
@@ -50,7 +64,7 @@ const strings={
   "badFile": "The file is damaged or changed. Download and select it again.",
   "cancelled": "Selection cancelled. Press Connect to try again.",
   "browser": "Open this app in Chrome on Android and turn on Bluetooth.",
-  "retry": "Hold Back + Home for 3 s until the red LED flashes. Confirm Android pairing, then press Connect.",
+  "retry": "Could not connect. See Help → Troubleshooting.",
   "error": "The action failed. Reconnect and retry. Save diagnostics in Help if needed.",
   "author": "Author",
   "releaseDate": "Release date",
@@ -76,7 +90,7 @@ const strings={
   "fileTitle": "Select the firmware",
   "upgradeTitle": "Upgrade the remote",
   "pair1": "Turn on Bluetooth on the phone and open Android Bluetooth settings.",
-  "pair2": "Press and hold Back and Home together on the remote for 3 seconds, until the red LED starts flashing.",
+  "pair2": "Press the microphone (MIC) button on the remote to start Easy Pairing.",
   "pair3": "Select SHARP RCU or SHARP SOLAR RCU in Android and confirm Pair. If it is already paired, keep the existing pairing.",
   "pair4": "Return to this page in Chrome. Press Connect, select that remote and allow access. Wait for its exact model, version and battery to appear. Selecting a device alone is not a completed connection.",
   "file1": "Press From phone and choose the BIN for the exact displayed model. AN2303-2UM-001 and AN2303B-2UM-001 require different files.",
@@ -84,7 +98,7 @@ const strings={
   "file3": "Wait until the file is ready. Confirm it once. The BIN and confirmation are kept for the next units of the same model.",
   "upgrade1": "Press Update remote. Keep the remote powered and nearby; leave this page open.",
   "upgrade2": "Wait for the transfer to finish. At 100% the bytes have been sent; that alone does not confirm installation.",
-  "upgrade3": "There are no automatic reconnection attempts. If the remote restarts and disconnects, wake it, repeat Back + Home for 3 seconds if pairing is needed, then press Reconnect and select the same remote to read its installed version.",
+  "upgrade3": "If the remote restarts and disconnects, wake it and press Reconnect. Select the same remote to read its installed version. If pairing fails, see Troubleshooting.",
   "upgrade4": "For another unit, press Next remote and repeat steps 1–4. The retained matching BIN is prepared automatically; press Update remote.",
   "reconnect": "Reconnect",
   "awaitingReconnect": "Transfer sent. No automatic reconnect. Wake/pair the remote, then press Reconnect or Read to check its version.",
@@ -95,6 +109,20 @@ const strings={
  "pl": {
   "language": "Język",
   "help": "Pomoc",
+  "pairFallback": "Jeśli Easy Pairing przyciskiem MIC nie działa, przytrzymaj jednocześnie Back + Home przez 3 sekundy, aż czerwona dioda zacznie migać. Sparuj pilot w ustawieniach Bluetooth Androida, a następnie naciśnij Połącz w aplikacji.",
+  "pairReset": "Jeśli naciśnięcie MIC nie włącza trybu parowania, przywróć ustawienia fabryczne zgodnie z instrukcją danego modelu pilota i spróbuj ponownie.",
+  "pairMissing": "Jeśli pilot jest w trybie parowania, ale nie ma go na liście w aplikacji, usuń ten pilot z listy sparowanych urządzeń w ustawieniach Bluetooth telefonu lub komputera. Ponownie włącz tryb parowania i naciśnij Połącz.",
+  "password": "Hasło",
+  "wrongPassword": "Nieprawidłowe hasło.",
+  "unlockPro": "Odblokuj Pro",
+  "softwareVersion": "Wersja oprogramowania",
+  "macUnavailable": "Niedostępny w tej przeglądarce",
+  "openOta": "Otwórz OTA Info.txt",
+  "loadOta": "Otwórz pobrany TXT",
+  "otaLoading": "Odczytywanie OTA Info.txt…",
+  "otaBlocked": "Przeglądarka nie mogła odczytać pliku z serwera. Otwórz lub pobierz oryginał. Pobrany plik TXT możesz wyświetlić tutaj.",
+  "otaInvalid": "Nie można otworzyć pliku. Wybierz OTA Info.txt o rozmiarze do 64 KB.",
+  "otaLocal": "Z wybranego pliku TXT. Tylko do wyświetlenia.",
   "about": "O programie",
   "close": "Zamknij",
   "remote": "Twój pilot",
@@ -123,7 +151,7 @@ const strings={
   "disconnected": "Niepołączony",
   "connecting": "Łączenie…",
   "reading": "Odczytywanie wybranego pilota…",
-  "start": "Przytrzymaj Back + Home przez 3 s do migania czerwonej diody. Sparuj w ustawieniach Bluetooth Androida, a potem naciśnij Połącz.",
+  "start": "",
   "choose": "Dane odczytane. Wybierz oprogramowanie.",
   "historical": "Pilot rozłączony. Wyświetlono ostatnio odczytane dane.",
   "preparing": "Przygotowywanie pliku… Instalacja nie została rozpoczęta.",
@@ -139,7 +167,7 @@ const strings={
   "badFile": "Plik jest uszkodzony lub zmieniony. Pobierz go i wybierz ponownie.",
   "cancelled": "Anulowano wybór. Naciśnij Połącz, aby spróbować ponownie.",
   "browser": "Otwórz aplikację w Chrome na Androidzie i włącz Bluetooth.",
-  "retry": "Przytrzymaj Back + Home przez 3 s do migania czerwonej diody. Potwierdź parowanie w Androidzie i naciśnij Połącz.",
+  "retry": "Nie udało się połączyć. Zobacz Pomoc → Rozwiązywanie problemów.",
   "error": "Nie udało się wykonać działania. Połącz ponownie i spróbuj jeszcze raz. Diagnostykę zapiszesz w Pomocy.",
   "author": "Autor",
   "releaseDate": "Data wydania",
@@ -165,7 +193,7 @@ const strings={
   "fileTitle": "Wybierz oprogramowanie",
   "upgradeTitle": "Zaktualizuj pilot",
   "pair1": "Włącz Bluetooth w telefonie i otwórz ustawienia Bluetooth Androida.",
-  "pair2": "Naciśnij i przytrzymaj jednocześnie przyciski Back i Home na pilocie przez 3 sekundy, aż czerwona dioda LED zacznie migać.",
+  "pair2": "Naciśnij przycisk mikrofonu (MIC) na pilocie, aby rozpocząć Easy Pairing.",
   "pair3": "Wybierz SHARP RCU lub SHARP SOLAR RCU w Androidzie i potwierdź Paruj. Jeśli pilot jest już sparowany, zachowaj istniejące parowanie.",
   "pair4": "Wróć do tej strony w Chrome. Naciśnij Połącz, wybierz ten pilot i zezwól na dostęp. Poczekaj na dokładny model, wersję i baterię. Sam wybór urządzenia nie oznacza zakończenia połączenia.",
   "file1": "Naciśnij Z telefonu i wybierz BIN dla dokładnego modelu na ekranie. AN2303-2UM-001 i AN2303B-2UM-001 wymagają różnych plików.",
@@ -173,7 +201,7 @@ const strings={
   "file3": "Poczekaj na gotowość pliku i zatwierdź go raz. BIN i zgoda zostają zachowane dla kolejnych pilotów tego samego modelu.",
   "upgrade1": "Naciśnij Aktualizuj pilot. Trzymaj włączony pilot w pobliżu i nie zamykaj strony.",
   "upgrade2": "Poczekaj na zakończenie transferu. 100% oznacza wysłanie danych, a nie potwierdzenie instalacji.",
-  "upgrade3": "Nie ma automatycznych prób ponownego łączenia. Jeśli pilot uruchomi się ponownie i rozłączy, wybudź go, w razie potrzeby przytrzymaj Back + Home przez 3 sekundy, a następnie naciśnij Połącz ponownie i wybierz ten sam pilot, aby odczytać wersję.",
+  "upgrade3": "Jeśli pilot uruchomi się ponownie i rozłączy, wybudź go i naciśnij Połącz ponownie. Wybierz ten sam pilot, aby odczytać wersję. W razie problemów z parowaniem zobacz sekcję Rozwiązywanie problemów.",
   "upgrade4": "Dla kolejnego urządzenia naciśnij Następny pilot i powtórz kroki 1–4. Zachowany zgodny BIN przygotuje się automatycznie; naciśnij Aktualizuj pilot.",
   "reconnect": "Połącz ponownie",
   "awaitingReconnect": "Dane wysłane. Brak automatycznych prób łączenia. Wybudź lub sparuj pilot i naciśnij Połącz ponownie lub Odczytaj, aby sprawdzić wersję.",
@@ -183,14 +211,34 @@ const strings={
  }
 };
 let language='en';try{if(localStorage.getItem('rcota-language')==='pl')language='pl';}catch{}
-let remote=window.RcWebRemote?.context()||{},upgrade={},file=null;
+let remote=window.RcWebRemote?.context()||{},upgrade={},file=null,pro=false,serverInfo=null;
 const t=(key,values={})=>Object.entries(values).reduce((text,[name,value])=>text.replaceAll('{'+name+'}',String(value)),strings[language][key]||strings.en[key]||key);
 function setLanguage(value){language=value==='pl'?'pl':'en';document.documentElement.lang=language;$('language').value=language;try{localStorage.setItem('rcota-language',language);}catch{}
  for(const node of document.querySelectorAll('[data-i18n]'))node.textContent=t(node.getAttribute('data-i18n'));
  for(const node of document.querySelectorAll('[data-i18n-aria]'))node.setAttribute('aria-label',t(node.getAttribute('data-i18n-aria')));
  render();
 }
+function renderPro(){
+ const metadata=remote.metadata||{};
+ const field=key=>remote.native||remote.freshFields?.includes(key)?metadata[key]:undefined;
+ const id=key=>Number.isInteger(field(key))?'0x'+field(key).toString(16).toUpperCase().padStart(4,'0')+' ('+field(key)+')':'—';
+ $('proButton').setAttribute('aria-pressed',String(pro));
+ $('proRemote').hidden=!pro;
+ $('proMac').textContent=/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(metadata.address||'')?metadata.address:remote.connected&&!remote.native?t('macUnavailable'):'—';
+ $('proVid').textContent=id('vid');
+ $('proPid').textContent=id('pid');
+ $('proSoftware').textContent=field('software')||'—';
+ const info=serverInfo?.model===metadata.model?serverInfo:null;
+ $('proOta').hidden=!pro||!info;
+ $('proOtaStatus').textContent=info?.status?t(info.status):'';
+ $('proOtaText').textContent=info?.text||'';
+ $('proOtaText').hidden=!info?.text;
+ $('proOtaLink').hidden=!info?.url;
+ if(info?.url)$('proOtaLink').href=info.url;
+ $('proOtaImport').hidden=info?.status!=='otaBlocked'&&info?.status!=='otaInvalid'&&info?.status!=='otaLocal';
+}
 function render(){
+ renderPro();
  const connected=!!remote.connected,blocked=!!remote.busy||!!remote.locked;const download=$('webSolarDownload').querySelector?.('a');if(download)download.textContent=t('downloadBin',{version:download.getAttribute('data-version')||'0.1.0'});
  $('connectionState').textContent=t(remote.busy?'connecting':connected?'connected':'disconnected');$('connectionState').classList.toggle('connected',connected);$('readRemote').disabled=!connected||blocked;$('connect').textContent=t(connected||remote.nextSelection?'next':upgrade.state==='awaiting-reconnect'?'reconnect':'connect');$('connect').disabled=blocked;$('disconnect').disabled=blocked||!(connected||remote.hasDevice);
  $('selectedFilename').textContent=file?file.filename:t('noFile');
@@ -200,14 +248,42 @@ function render(){
  if(states[upgrade.state])message=states[upgrade.state]();else if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');else if(/failed|unavailable|cancelled|timed out/i.test(remote.message||''))message=errorMessage(remote.message);
  if(['retained','idle'].includes(upgrade.state)){if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');}
  if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t('retry');
- $('screenMessage').textContent=message;$('screenMessage').classList.toggle('error',['error','model-mismatch'].includes(upgrade.state));$('screenMessage').classList.toggle('success',upgrade.state==='installed');$('webInstall').textContent=t(upgrade.state==='transferring'?'updating':'update');
+ $('screenMessage').hidden=!message;$('screenMessage').textContent=message;$('screenMessage').classList.toggle('error',['error','model-mismatch'].includes(upgrade.state));$('screenMessage').classList.toggle('success',upgrade.state==='installed');$('webInstall').textContent=t(upgrade.state==='transferring'?'updating':'update');
 }
 function errorMessage(message=''){
  for(const [pattern,key] of [[/CORS|could not read the manufacturer|Failed to fetch/i,'cors'],[/30%|battery/i,'lowBattery'],[/exact model|filename|different.*model|model.*changed/i,'wrongModel'],[/newer|No upgrade/i,'noNewer'],[/MD5|file changed|checksum/i,'badFile'],[/cancelled/i,'cancelled'],[/unavailable.*browser|Bluetooth is unavailable/i,'browser'],[/disconnected|timed out|Connection failed|link lost/i,'retry']])if(pattern.test(message))return t(key);
  return t('error');
 }
-window.RcSimpleUI={remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
+window.RcSimpleUI={serverInfo(value){serverInfo=value;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
 for(const name of ['about','help']){const dialog=$(name+'Dialog');$(name+'Button').onclick=()=>dialog.showModal();$('close'+name[0].toUpperCase()+name.slice(1)).onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog){const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}});}
+const proDialog=$('proDialog'),password=$('proPassword');
+$('proButton').onclick=()=>{
+ if(pro){pro=false;renderPro();return;}
+ $('proError').hidden=true;
+ proDialog.showModal();
+};
+$('closePro').onclick=()=>proDialog.close();
+proDialog.addEventListener('close',()=>{password.value='';});
+$('proForm').onsubmit=event=>{
+ event.preventDefault();
+ if(password.value!=='1111'){$('proError').hidden=false;return;}
+ pro=true;
+ proDialog.close();
+ renderPro();
+};
+$('proOtaFile').onchange=async event=>{
+ const input=event.target,selected=input.files[0],info=serverInfo;
+ input.value='';
+ if(!selected||!pro||!info)return;
+ try{
+  if(!/\.txt$/i.test(selected.name)||selected.size>65536)throw Error();
+  const text=await selected.text();
+  if(serverInfo===info)serverInfo={...info,text,status:'otaLocal'};
+ }catch{
+  if(serverInfo===info)serverInfo={...info,text:'',status:'otaInvalid'};
+ }
+ renderPro();
+};
 $('language').onchange=event=>setLanguage(event.target.value);
 $('readRemote').onclick=()=>window.RcWebRemote?.read();
 $('connect').onclick=()=>window.RcWebRemote?.context()?.connected?window.RcWebRemote.next():window.RcWebRemote?.connect();

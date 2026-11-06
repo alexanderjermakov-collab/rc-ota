@@ -42,10 +42,31 @@ async function bindRetained(){const c=context();if(!retained||running||preparing
   showPrepared(file,c.device);record('retained-file-bound',{model:file.model,installed:file.installed,approved:approved()});
  }catch(error){prepared=null;status(error.message,error.modelMismatch?'model-mismatch':'error');}finally{preparing=false;window.RcWebRemote.lock(false);render();}
 }
-async function prepare(source){if(running||preparing)return;const c=context();if(!c?.connected||c.native)return;clearFile();const id=generation;preparing=true;render();window.RcWebRemote.lock(true);status('Reading the remote and checking firmware…','preparing');
+async function prepare(source){if(running||preparing)return;const c=context();if(!c?.connected||c.native)return;clearFile();const id=generation;preparing=true;
+ const model=c.metadata.model;
+ const base='https://'+RcOta.HOST+'/'+encodeURIComponent(model)+'/';
+ let infoUrl=/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(model)?base+'ota_info.txt':'';
+ const showInfo=(status,text='')=>{
+  if(id===generation)window.RcSimpleUI?.serverInfo?.({model,url:infoUrl,status,text});
+ };
+ window.RcSimpleUI?.serverInfo?.(null);
+ render();window.RcWebRemote.lock(true);status('Reading the remote and checking firmware…','preparing');
  try{const identity=await inspectRemote(c);await ota(c.device);let bytes,options={source,model:identity.model,installed:identity.firmware};
   if(source==='local'){const input=$('webFirmware').files[0];if(!input)throw Error('Choose a local BIN first.');if(input.size>T.MAX)throw Error('The firmware file is too large.');bytes=await input.arrayBuffer();options.filename=input.name;}
-  else{const base='https://'+RcOta.HOST+'/'+encodeURIComponent(identity.model)+'/',decode=b=>new TextDecoder().decode(b),links=RcOta.manifest(decode(await download(base,65536))),info=RcOta.info(decode(await download(links.metadataUrl,65536))),url=new URL(links.firmwareUrl);if(decodeURIComponent(url.pathname)!=='/'+identity.model+'/'+info.name)throw Error('The server filename or model folder does not match its metadata.');if(info.mac)throw Error('This update has a MAC restriction that Web Bluetooth cannot verify.');options={...options,filename:info.name,version:info.version,md5:info.md5sum};bytes=await download(links.firmwareUrl,T.MAX,true);}
+  else{
+   showInfo('otaLoading');
+   const decode=b=>new TextDecoder().decode(b);
+   let links,raw;
+   try{
+    links=RcOta.manifest(decode(await download(base,65536)));
+    infoUrl=links.metadataUrl;
+    raw=decode(await download(infoUrl,65536));
+    showInfo('',raw);
+   }catch(error){
+    showInfo('otaBlocked');
+    throw error;
+   }
+   const info=RcOta.info(raw),url=new URL(links.firmwareUrl);if(decodeURIComponent(url.pathname)!=='/'+identity.model+'/'+info.name)throw Error('The server filename or model folder does not match its metadata.');if(info.mac)throw Error('This update has a MAC restriction that Web Bluetooth cannot verify.');options={...options,filename:info.name,version:info.version,md5:info.md5sum};bytes=await download(links.firmwareUrl,T.MAX,true);}
   const file=await T.prepare(bytes,options);if(id!==generation||!c.device.gatt.connected)throw Error('Connection changed. Prepare the firmware again.');retained=file;approval='';save();showPrepared(file,c.device);
  }catch(error){prepared=null;status(error instanceof TypeError?'The browser could not read the manufacturer server (network/CORS). Use a local BIN.':error.message,'error');}finally{preparing=false;window.RcWebRemote.lock(false);render();}
 }
@@ -82,6 +103,6 @@ $('webPrepareServer').onclick=()=>prepare('server');$('webPrepareLocal').onclick
 window.addEventListener('rcota-metadata',event=>{if(running)return;const previous=report,c=context(),values=event?.detail;invalidate();
  if(values?.model){const same=pendingCheck&&(c?.device===pendingCheck.device||(c?.device?.id&&c.device.id===pendingCheck.device?.id));if(same){record('manual-readback',{model:values.model,firmware:values.firmware});applyReadback(values);render();return;}if(retained)void bindRetained();}
  else if(['installed','installation-unconfirmed','awaiting-reconnect','model-mismatch','error'].includes(previous.state)){report=previous;status(previous.message,previous.state);}});
-for(const name of ['rcota-remote-forgotten','rcota-next-remote'])window.addEventListener(name,()=>{if(!running){pendingCheck=null;invalidate();}});
+for(const name of ['rcota-remote-forgotten','rcota-next-remote'])window.addEventListener(name,()=>{if(!running){window.RcSimpleUI?.serverInfo?.(null);pendingCheck=null;invalidate();}});
 window.RcWebUpgrade={diagnostics:()=>({...report,package:summary(),profile:'telink-legacy',batchApproved:approved(),systemBondState:'Not observable in Web Bluetooth',postTransferDisconnect:'No automatic disconnect; a healthy link is retained'}),bindRetained,storageIdle:()=>storageQueue};render();void restoreFile();
 })();

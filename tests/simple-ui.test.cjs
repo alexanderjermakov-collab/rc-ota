@@ -7,5 +7,23 @@ test('English is the default, and switching to Polish translates static and curr
 test('saved Polish is restored; blocked language storage keeps the UI usable',()=>{assert.equal(setup({saved:'pl'}).node('connect').textContent,'Połącz');const s=setup({denied:true});assert.equal(s.node('connect').textContent,'Connect');s.node('language').onchange({target:{value:'pl'}});assert.equal(s.node('connect').textContent,'Połącz')});
 test('switching language preserves the selected file and installation consent',()=>{const s=setup();s.window.RcSimpleUI.upgrade({state:'ready'},{filename:'AN2303B-2UM-001_V0.0.16.bin',version:'0.0.16',source:'local'});s.node('webConfirm').checked=true;s.node('language').onchange({target:{value:'pl'}});assert.equal(s.node('selectedFilename').textContent,'AN2303B-2UM-001_V0.0.16.bin');assert.equal(s.node('webConfirm').checked,true);assert.match(s.node('selectedVersion').textContent,/Wersja 0.0.16.*telefon/)});
 test('Help and About open independently; only Help contains instructions and diagnostic export',()=>{const s=setup();s.node('helpButton').onclick();assert.equal(s.node('helpDialog').open,true);assert.equal(s.node('aboutDialog').open,false);s.node('closeHelp').onclick();s.node('aboutButton').onclick();assert.equal(s.node('aboutDialog').open,true);const html=fs.readFileSync('docs/index.html','utf8'),about=html.match(/<dialog id="aboutDialog"[\s\S]*?<\/dialog>/)[0],help=html.match(/<dialog id="helpDialog"[\s\S]*?<\/dialog>/)[0];assert.match(about,/Remote Control Software Upgrade/);assert.match(about,/Alexander Jermakov/);assert.match(about,/datetime="\d{4}-\d{2}-\d{2}"/);assert.equal(about.includes('id="export"'),false);assert.equal(about.includes('data-i18n="pair1"'),false);assert.match(help,/id="export"/);assert.match(help,/data-i18n="pair1"/)});
-test('numbered Help explains Back + Home for three seconds and a flashing red LED in both languages',()=>{const s=setup(),pairStep=()=>s.document.querySelectorAll('[data-i18n]').find(n=>n.getAttribute('data-i18n')==='pair2').textContent;assert.match(pairStep(),/Back.*Home.*3 seconds.*red LED/);s.node('language').onchange({target:{value:'pl'}});assert.match(pairStep(),/Back.*Home.*3 sekundy.*czerwona/);const html=fs.readFileSync('docs/index.html','utf8');for(const start of [1,5,8])assert.ok(html.includes('<ol start="'+start+'">'))});
+test('numbered Help explains Back + Home for three seconds and a flashing red LED in both languages',()=>{const s=setup(),pairStep=()=>s.document.querySelectorAll('[data-i18n]').find(n=>n.getAttribute('data-i18n')==='pairFallback').textContent;assert.match(pairStep(),/Back.*Home.*3 seconds.*red LED/);s.node('language').onchange({target:{value:'pl'}});assert.match(pairStep(),/Back.*Home.*3 sekundy.*czerwona/);const html=fs.readFileSync('docs/index.html','utf8');for(const start of [1,5,8])assert.ok(html.includes('<ol start="'+start+'">'))});
 test('a wrong-model BIN is shown distinctly from connection and cannot masquerade as failed pairing',()=>{const s=setup();s.window.RcSimpleUI.remote({connected:true,hasDevice:true,metadata:{model:'AN2303-2UM-001'}});s.window.RcSimpleUI.upgrade({state:'model-mismatch',detectedModel:'AN2303-2UM-001',expectedModel:'AN2303B-2UM-001'});assert.equal(s.node('connectionState').textContent,'Connected');assert.match(s.node('screenMessage').textContent,/Remote: AN2303-2UM-001.*Saved BIN: AN2303B-2UM-001/)});
+test('Pro requires the password and shows fresh IDs and server metadata until locked',()=>{
+ const s=setup(),submit=()=>s.node('proForm').onsubmit({preventDefault(){}});
+ s.window.RcSimpleUI.remote({connected:true,freshFields:['pid','vid','software'],metadata:{model:'TEST',pid:16,vid:4660,software:'V1'}});
+ s.window.RcSimpleUI.serverInfo({model:'TEST',text:'name: sample.bin'});
+ assert.equal(s.node('proRemote').hidden,true);
+ s.node('proButton').onclick();
+ s.node('proPassword').value='1234';submit();
+ assert.equal(s.node('proError').hidden,false);
+ assert.equal(s.node('proOta').hidden,true);
+ s.node('proPassword').value='1111';submit();
+ assert.equal(s.node('proRemote').hidden,false);
+ assert.equal(s.node('proPid').textContent,'0x0010 (16)');
+ assert.equal(s.node('proVid').textContent,'0x1234 (4660)');
+ assert.equal(s.node('proSoftware').textContent,'V1');
+ assert.equal(s.node('proOtaText').textContent,'name: sample.bin');
+ s.node('proButton').onclick();
+ assert.equal(s.node('proOta').hidden,true);
+});
