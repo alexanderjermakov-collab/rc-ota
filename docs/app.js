@@ -26,7 +26,7 @@ function notifySimpleUI(){window.RcSimpleUI?.remote({connected,busy,metadata:{..
 function pairing(value){$('pairing').textContent=value}
 
 function log(message){entries.push({time:new Date().toISOString(),message});if(entries.length>200)entries.shift();$('log').textContent=entries.map(e=>`${e.time.slice(11,19)}  ${e.message}`).join('\n');console.info('[RCOTA]',message)}
-function state(value,message){if(!value)window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:{}}));connected=value;if(value)connectionTelemetry={...connectionTelemetry,phase:'verified',verifiedAt:new Date().toISOString()};$('connection').textContent=value?'GATT verified':busy?'Connecting…':'Disconnected';$('connect').disabled=value||busy;$('disconnect').disabled=!value&&!busy;$('status').textContent=message;log(message);if(readAt)render();notifySimpleUI()}
+function state(value,message){if(!value)window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:{}}));connected=value;if(value&&!busy&&freshFields.has('model')&&freshFields.has('firmware'))connectionTelemetry={...connectionTelemetry,phase:'verified',verifiedAt:new Date().toISOString()};$('connection').textContent=value?'GATT verified':busy?'Connecting…':'Disconnected';$('connect').disabled=value||busy;$('disconnect').disabled=!value&&!busy;$('status').textContent=message;log(message);if(readAt)render();notifySimpleUI()}
 function render(){for(const key of ['name','model','firmware','software','hardware','manufacturer','address'])$(key).textContent=metadata[key]||'—';$('level').textContent=Number.isFinite(metadata.level)?metadata.level+'%':'—';
  const historical=Object.keys(metadata).some(key=>!['name','address'].includes(key)&&!freshFields.has(key));
  $('readTime').textContent=readAt?(connected&&!historical?'Live read · ':'Last read data; some values may be historical · ')+new Date(readAt).toLocaleString():'No remote parameters have been read.';
@@ -60,31 +60,22 @@ function recordRead(key,value) {
  metadata[key]=value;freshFields.add(key);readAt=Date.now();lastReadMetadata={...metadata};render();
 }
 async function readInfo(server,id) {
- let liveReads=0;
- // Battery first: it is independently useful even when Device Information is absent.
- try {
-  const service=await gattStep(()=>server.getPrimaryService('battery_service'),id,'Finding Battery service');
-  const characteristic=await gattStep(()=>service.getCharacteristic('battery_level'),id,'Finding battery level');
-  const value=await gattStep(()=>characteristic.readValue(),id,'Reading battery level');
-  if(value.byteLength&&value.getUint8(0)<=100){recordRead('level',value.getUint8(0));liveReads++;}
-  else log('Battery value is empty or outside 0–100%.');
- } catch(error) {
-  current(id);log('Battery information unavailable: '+error.message);
-  if(error.gattTimeout||!device?.gatt.connected)throw error;
- }
- try {
-  const service=await gattStep(()=>server.getPrimaryService('device_information'),id,'Finding Device Information service');
-  for(const [key,name] of [['model','model_number_string'],['firmware','firmware_revision_string'],['software','software_revision_string'],['hardware','hardware_revision_string'],['manufacturer','manufacturer_name_string']]) {
-   try {
-    const characteristic=await gattStep(()=>service.getCharacteristic(name),id,'Finding '+key);
-    const value=await gattStep(()=>characteristic.readValue(),id,'Reading '+key);
-    const text=new TextDecoder().decode(value).replace(/\0/g,'').trim();
-    if(text){recordRead(key,text);liveReads++;}else log(key+' returned an empty value.');
-   } catch(error) {
-    current(id);log(key+' unavailable: '+error.message);
-    if(error.gattTimeout||!device?.gatt.connected)throw error;
-   }
+ let liveReads=0,infoService;
+ async function readText(service,key,name){
+  try {
+   const characteristic=await gattStep(()=>service.getCharacteristic(name),id,'Finding '+key);
+   const value=await gattStep(()=>characteristic.readValue(),id,'Reading '+key);
+   const text=new TextDecoder().decode(value).replace(/\0/g,'').trim();
+   if(text){recordRead(key,text);liveReads++;}else log(key+' returned an empty value.');
+  } catch(error) {
+   current(id);log(key+' unavailable: '+error.message);
+   if(error.gattTimeout||!device?.gatt.connected)throw error;
   }
+ }
+
+ try {
+  const service=infoService=await gattStep(()=>server.getPrimaryService('device_information'),id,'Finding Device Information service');
+  for(const [key,name] of [['model','model_number_string'],['firmware','firmware_revision_string'],['software','software_revision_string']])await readText(service,key,name);
   try {
    const pnp=await gattStep(()=>service.getCharacteristic(0x2a50),id,'Finding PnP ID');
    const value=await gattStep(()=>pnp.readValue(),id,'Reading PnP ID');
@@ -100,6 +91,20 @@ async function readInfo(server,id) {
   current(id);log('Device information unavailable: '+error.message);
   if(error.gattTimeout||!device?.gatt.connected)throw error;
  }
+ try {
+  const service=await gattStep(()=>server.getPrimaryService('battery_service'),id,'Finding Battery service');
+  const characteristic=await gattStep(()=>service.getCharacteristic('battery_level'),id,'Finding battery level');
+  const value=await gattStep(()=>characteristic.readValue(),id,'Reading battery level');
+  if(value.byteLength&&value.getUint8(0)<=100){recordRead('level',value.getUint8(0));liveReads++;}
+  else log('Battery value is empty or outside 0–100%.');
+ } catch(error) {
+  current(id);log('Battery information unavailable: '+error.message);
+  if(error.gattTimeout||!device?.gatt.connected)throw error;
+ }
+ if(infoService){
+  await readText(infoService,'hardware','hardware_revision_string');
+  await readText(infoService,'manufacturer','manufacturer_name_string');
+ }
  return liveReads;
 }
 async function discover(server,id) {
@@ -114,7 +119,7 @@ async function discover(server,id) {
  }catch(error){current(id);showServices(result);if(error.gattTimeout||!device?.gatt.connected)throw error;log('Some permitted services could not be listed: '+error.message);}
  current(id);showServices(result);
 }
-async function connectRemote(forceChooser=false,preselected=null){if(port){port.postMessage(JSON.stringify({type:forceChooser?'choose':'connect'}));return}if(busy||connected||webOtaBusy)return;if(!isSecureContext||!navigator.bluetooth){state(false,'Bluetooth is unavailable in this browser. On Android, open this HTTPS page directly in Chrome.');return}const id=++revision;let selected;busy=true;freshFields.clear();services=[];render();state(false,'Choose your SHARP remote, not this phone. Device selection is not a completed GATT connection.');try{selected=preselected||(!forceChooser?await savedRemote():null);current(id);if(selected)log('Reusing previously permitted remote without reopening the chooser.');if(!selected)selected=await navigator.bluetooth.requestDevice($('allDevices').checked?{acceptAllDevices:true,optionalServices}:{filters:[{namePrefix:'SHARP'},{namePrefix:'Sharp'},{namePrefix:'sharp'}],optionalServices});current(id);if(permittedDevice&&selected!==permittedDevice&&(!selected.id||selected.id!==permittedDevice.id)){metadata={};lastReadMetadata={};readAt=0;}permittedDevice=selected;nextSelection=false;freshSelection=false;connectionError=null;remember(selected);pairing('Browser access allowed · system pairing is managed by your operating system');device=selected;device.addEventListener('gattserverdisconnected',()=>{if(id!==revision)return;noteLinkClosed();revision++;busy=false;lastReadMetadata={...metadata};freshFields.clear();render();services=[];$('services').textContent='Remote disconnected.';state(false,'Remote GATT disconnected. Displayed data is from the last read. Press Connect remote to reconnect without selecting again while this page stays open.')},{once:true});state(false,'Connecting. Keep the remote awake.');const attempt=selected.gatt.connect();attempt.then(()=>{if(id!==revision)selected.gatt.disconnect()},()=>{});const server=await timed(attempt,25000,'Connection timed out. Wake the remote and reconnect.');current(id);connectionTelemetry={phase:'reading',openedAt:new Date().toISOString(),controllerReasonAvailable:false};metadata={...metadata,name:device.name||'Unnamed device',address:'Not exposed by Web Bluetooth'};render();state(false,'GATT link open. Verifying the remote and reading its services…');const liveReads=await readInfo(server,id);current(id);await discover(server,id);current(id);if(!selected.gatt.connected)throw new Error('GATT link closed during device verification.');if(!services.length)throw new Error('No readable GATT services were confirmed. Remote connection is not verified.');const recognized=/sharp/i.test(metadata.name)&&!!(metadata.model||metadata.firmware||metadata.software)||services.some(s=>optionalServices.slice(2).includes(s.uuid.toLowerCase()));if(!recognized)throw new Error('This device is not recognized as a supported remote. Select the remote, not a phone.');if(!liveReads)throw new Error('No live read was confirmed. GATT connection is not verified. Wake the remote and reconnect.');if(!freshFields.has('model')||!freshFields.has('firmware'))throw new Error('Current model and firmware were not read. Pair in Android Bluetooth settings, then connect again.');busy=false;remember(selected);render();state(true,'Remote GATT verified. No firmware was written. System pairing cannot be confirmed by this browser.');window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:Object.fromEntries(Object.entries(metadata).filter(([key])=>freshFields.has(key)||['name','address'].includes(key)))}))}catch(e){if(id!==revision){if(selected?.gatt?.connected)selected.gatt.disconnect();return}connectionError={name:e.name,message:e.message};if(e.name!=='NotFoundError')freshSelection=true;revision++;busy=false;if(selected?.gatt?.connected)selected.gatt.disconnect();device=null;lastReadMetadata={...metadata};freshFields.clear();services=[];render();$('services').textContent='Connect a remote to discover its permitted services.';state(false,e.name==='NotFoundError'?'Device selection cancelled.':'Connection failed: '+e.message+(e.gattTimeout?' GATT discovery/read stalled in this browser. On Windows, use the local Windows bridge.':''))}}
+async function connectRemote(forceChooser=false,preselected=null){if(port){port.postMessage(JSON.stringify({type:forceChooser?'choose':'connect'}));return}if(busy||connected||webOtaBusy)return;if(!isSecureContext||!navigator.bluetooth){state(false,'Bluetooth is unavailable in this browser. On Android, open this HTTPS page directly in Chrome.');return}const id=++revision;let selected;busy=true;freshFields.clear();services=[];render();state(false,'Choose your SHARP remote, not this phone. Device selection is not a completed GATT connection.');try{selected=preselected||(!forceChooser?await savedRemote():null);current(id);if(selected)log('Reusing previously permitted remote without reopening the chooser.');if(!selected)selected=await navigator.bluetooth.requestDevice($('allDevices').checked?{acceptAllDevices:true,optionalServices}:{filters:[{namePrefix:'SHARP'},{namePrefix:'Sharp'},{namePrefix:'sharp'}],optionalServices});current(id);if(permittedDevice&&selected!==permittedDevice&&(!selected.id||selected.id!==permittedDevice.id)){metadata={};lastReadMetadata={};readAt=0;}permittedDevice=selected;nextSelection=false;freshSelection=false;connectionError=null;remember(selected);pairing('Browser access allowed · system pairing is managed by your operating system');device=selected;device.addEventListener('gattserverdisconnected',()=>{if(id!==revision)return;noteLinkClosed();revision++;busy=false;lastReadMetadata={...metadata};freshFields.clear();render();services=[];$('services').textContent='Remote disconnected.';state(false,'Remote GATT disconnected. Displayed data is from the last read. Press Connect remote to reconnect without selecting again while this page stays open.')},{once:true});state(false,'Connecting. Keep the remote awake.');const attempt=selected.gatt.connect();attempt.then(()=>{if(id!==revision&&device!==selected)selected.gatt.disconnect()},()=>{});const server=await timed(attempt,25000,'Connection timed out. Wake the remote and reconnect.');current(id);connectionTelemetry={phase:'reading',openedAt:new Date().toISOString(),controllerReasonAvailable:false};metadata={...metadata,name:device.name||'Unnamed device',address:'Not exposed by Web Bluetooth'};render();state(false,'GATT link open. Verifying the remote and reading its services…');const liveReads=await readInfo(server,id);current(id);await discover(server,id);current(id);if(!selected.gatt.connected)throw new Error('GATT link closed during device verification.');if(!services.length)throw new Error('No readable GATT services were confirmed. Remote connection is not verified.');const recognized=/sharp/i.test(metadata.name)&&!!(metadata.model||metadata.firmware||metadata.software)||services.some(s=>optionalServices.slice(2).includes(s.uuid.toLowerCase()));if(!recognized)throw new Error('This device is not recognized as a supported remote. Select the remote, not a phone.');if(!liveReads)throw new Error('No live read was confirmed. GATT connection is not verified. Wake the remote and reconnect.');if(!freshFields.has('model')||!freshFields.has('firmware'))throw new Error('Current model and firmware were not read. Pair in Android Bluetooth settings, then connect again.');busy=false;remember(selected);render();state(true,'Remote GATT verified. No firmware was written. System pairing cannot be confirmed by this browser.');window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:Object.fromEntries(Object.entries(metadata).filter(([key])=>freshFields.has(key)||['name','address'].includes(key)))}))}catch(e){if(id!==revision){if(selected?.gatt?.connected&&device!==selected)selected.gatt.disconnect();return}connectionError={name:e.name,message:e.message};if(e.name!=='NotFoundError')freshSelection=true;revision++;busy=false;if(selected?.gatt?.connected)selected.gatt.disconnect();device=null;lastReadMetadata={...metadata};freshFields.clear();services=[];render();$('services').textContent='Connect a remote to discover its permitted services.';state(false,e.name==='NotFoundError'?'Device selection cancelled.':'Connection failed: '+e.message+(e.gattTimeout?' GATT discovery/read stalled in this browser. On Windows, use the local Windows bridge.':''))}}
 $('connect').onclick=()=>connectRemote();
 $('choose').onclick=()=>connectRemote(true);
 $('disconnect').onclick=()=>{if(webOtaBusy)return;if(port){port.postMessage(JSON.stringify({type:'disconnect'}));return}revision++;busy=false;device?.gatt.disconnect();device=null;lastReadMetadata={...metadata};freshFields.clear();services=[];render();$('services').textContent='Remote disconnected.';state(false,'Disconnected. If a Bluetooth chooser is still open, close it.')};
@@ -125,7 +130,7 @@ async function readCurrentRemote(){
  if(port){port.postMessage(JSON.stringify({type:'connect'}));return;}
  if(!device?.gatt.connected)return;
  const id=revision;busy=true;freshFields.clear();window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:{}}));state(true,'Reading current remote information…');
- try{await readInfo(device.gatt,id);current(id);if(!freshFields.has('model')||!freshFields.has('firmware'))throw Error('Current model and firmware could not be read.');busy=false;render();state(true,'Remote information refreshed.');window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:Object.fromEntries(Object.entries(metadata).filter(([key])=>freshFields.has(key)||['name','address'].includes(key)))}));}
+ try{await readInfo(device.gatt,id);current(id);if(!freshFields.has('model')||!freshFields.has('firmware')){busy=false;state(true,'Remote information was only partially refreshed.');return;}busy=false;render();state(true,'Remote information refreshed.');window.dispatchEvent?.(new CustomEvent('rcota-metadata',{detail:Object.fromEntries(Object.entries(metadata).filter(([key])=>freshFields.has(key)||['name','address'].includes(key)))}));}
  catch(error){if(id!==revision)return;busy=false;device?.gatt.disconnect();freshFields.clear();state(false,'Connection failed: '+error.message);render();}
 }
 function resumeUpgradeReadback(remote,values){
@@ -157,9 +162,9 @@ async function forgetRemote(){
  finally{busy=false;$('services').textContent='No remote selected.';pairing('No remote selected. System pairing is not exposed by Web Bluetooth.');render();state(false,result);window.dispatchEvent?.(new CustomEvent('rcota-remote-forgotten'));}
 }
 window.RcWebRemote={requireSelection:()=>{freshSelection=true;},connect:()=>connectRemote(nextSelection||freshSelection),next:nextRemote,forget:forgetRemote,resumeAfterUpgrade:resumeUpgradeReadback,logEvent:log,read:readCurrentRemote,context:()=>({device,metadata:{...metadata},connected:connected&&!busy&&freshFields.has('model')&&freshFields.has('firmware'),native:!!port,freshFields:[...freshFields],nextSelection,freshSelection,connectionError,hasDevice:!!device||!!permittedDevice||!!savedId,busy,locked:webOtaBusy,readAt,message:$('status').textContent}),lock:value=>{webOtaBusy=value;for(const id of ['choose','allDevices','file'])$(id).disabled=value;$('connect').disabled=value||connected||busy;$('disconnect').disabled=value||(!connected&&!busy);notifySimpleUI();}};
-$('export').onclick=()=>{const data={version:'0.17.1',exportedAt:new Date().toISOString(),transport:port?'Android BLE Bridge':navigator.bluetooth?'Web Bluetooth':'Unavailable',secureContext:isSecureContext,userAgent:navigator.userAgent,connected,pairingState:$('pairing').textContent,connectionTelemetry,connectionError,selectionRequiresChooser:freshSelection||nextSelection,savedDeviceAvailable:!!savedId,inPagePermissionAvailable:!!permittedDevice,lastReadMetadata,readAt,freshFields:[...freshFields],upgrade:window.RcWebUpgrade?.diagnostics(),browserRestore:restoreDiagnostic,metadata,services,entries,connectionMeaning:'GATT services verified; Android bond state not exposed by Web Bluetooth'};if(port){port.postMessage(JSON.stringify({type:'export',value:data}));return}const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rc-ota-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('export').onclick=()=>{const data={version:'0.17.2',exportedAt:new Date().toISOString(),transport:port?'Android BLE Bridge':navigator.bluetooth?'Web Bluetooth':'Unavailable',secureContext:isSecureContext,userAgent:navigator.userAgent,connected,pairingState:$('pairing').textContent,connectionTelemetry,connectionError,selectionRequiresChooser:freshSelection||nextSelection,savedDeviceAvailable:!!savedId,inPagePermissionAvailable:!!permittedDevice,lastReadMetadata,readAt,freshFields:[...freshFields],upgrade:window.RcWebUpgrade?.diagnostics(),browserRestore:restoreDiagnostic,metadata,services,entries,connectionMeaning:'GATT services verified; Android bond state not exposed by Web Bluetooth'};if(port){port.postMessage(JSON.stringify({type:'export',value:data}));return}const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rc-ota-diagnostics.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
 window.RcNative={available:()=>!!port,send:message=>port?.postMessage(JSON.stringify(message))};
-$('transport').textContent=navigator.bluetooth&&isSecureContext?'Web Bluetooth available':'Web Bluetooth unavailable';$('environment').textContent=`Version 0.17.1 · Secure connection: ${isSecureContext?'yes':'no'} · Web Bluetooth: ${navigator.bluetooth?'available':'unavailable'}`;render();pairing('System pairing status is not exposed by Web Bluetooth');
+$('transport').textContent=navigator.bluetooth&&isSecureContext?'Web Bluetooth available':'Web Bluetooth unavailable';$('environment').textContent=`Version 0.17.2 · Secure connection: ${isSecureContext?'yes':'no'} · Web Bluetooth: ${navigator.bluetooth?'available':'unavailable'}`;render();pairing('System pairing status is not exposed by Web Bluetooth');
 async function restore(){if(location.origin==='https://appassets.androidplatform.net'||port||busy||connected)return;const attemptRevision=revision;try{const previous=await savedRemote();if(port||busy||connected||revision!==attemptRevision)return;if(previous)await connectRemote(false,previous);else state(false,restoreDiagnostic.reason)}catch(e){log('Automatic reconnect unavailable: '+e.message)}}
 if(window.RcLocalBridge){$('environment').textContent='Local Android connection';const startLocal=()=>window.RcLocalBridge.start(receive);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startLocal,{once:true});else startLocal();}else setTimeout(restore,0);
 window.addEventListener('pagehide',()=>{revision++;device?.gatt.disconnect();port?.close()});

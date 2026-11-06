@@ -13,7 +13,9 @@ const strings={
   "wrongPassword": "Incorrect password.",
   "unlockPro": "Unlock Pro",
   "softwareVersion": "Software version",
-  "macUnavailable": "Unavailable in this browser",
+  "macUnavailable": "Use the Android BLE Bridge to read the MAC address",
+  "lastRead": "Showing the last values read from this remote.",
+  "partialRead": "Some fields could not be refreshed. The Bluetooth link is still open.",
   "openOta": "Open OTA Info.txt",
   "loadOta": "Open downloaded TXT",
   "otaLoading": "Reading OTA Info.txt…",
@@ -116,7 +118,9 @@ const strings={
   "wrongPassword": "Nieprawidłowe hasło.",
   "unlockPro": "Odblokuj Pro",
   "softwareVersion": "Wersja oprogramowania",
-  "macUnavailable": "Niedostępny w tej przeglądarce",
+  "macUnavailable": "Użyj mostka Android BLE Bridge, aby odczytać adres MAC",
+  "lastRead": "Wyświetlono ostatnie wartości odczytane z tego pilota.",
+  "partialRead": "Nie udało się odświeżyć części danych. Połączenie Bluetooth nadal działa.",
   "openOta": "Otwórz OTA Info.txt",
   "loadOta": "Otwórz pobrany TXT",
   "otaLoading": "Odczytywanie OTA Info.txt…",
@@ -220,14 +224,18 @@ function setLanguage(value){language=value==='pl'?'pl':'en';document.documentEle
 }
 function renderPro(){
  const metadata=remote.metadata||{};
- const field=key=>remote.native||remote.freshFields?.includes(key)?metadata[key]:undefined;
+ const fields=['vid','pid','software'];
+ const hasPrevious=fields.some(key=>metadata[key]!=null&&!remote.freshFields?.includes(key));
+ const field=key=>metadata[key];
  const id=key=>Number.isInteger(field(key))?'0x'+field(key).toString(16).toUpperCase().padStart(4,'0')+' ('+field(key)+')':'—';
  $('proButton').setAttribute('aria-pressed',String(pro));
  $('proRemote').hidden=!pro;
- $('proMac').textContent=/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(metadata.address||'')?metadata.address:remote.connected&&!remote.native?t('macUnavailable'):'—';
+ $('proMac').textContent=/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(metadata.address||'')?metadata.address:!remote.native?t('macUnavailable'):'—';
  $('proVid').textContent=id('vid');
  $('proPid').textContent=id('pid');
  $('proSoftware').textContent=field('software')||'—';
+ $('proReadNote').hidden=!pro||remote.native||!hasPrevious;
+ $('proReadNote').textContent=t('lastRead');
  const info=serverInfo?.model===metadata.model?serverInfo:null;
  $('proOta').hidden=!pro||!info;
  $('proOtaStatus').textContent=info?.status?t(info.status):'';
@@ -240,14 +248,15 @@ function renderPro(){
 function render(){
  renderPro();
  const connected=!!remote.connected,blocked=!!remote.busy||!!remote.locked;const download=$('webSolarDownload').querySelector?.('a');if(download)download.textContent=t('downloadBin',{version:download.getAttribute('data-version')||'0.1.0'});
- $('connectionState').textContent=t(remote.busy?'connecting':connected?'connected':'disconnected');$('connectionState').classList.toggle('connected',connected);$('readRemote').disabled=!connected||blocked;$('connect').textContent=t(connected||remote.nextSelection?'next':upgrade.state==='awaiting-reconnect'?'reconnect':'connect');$('connect').disabled=blocked;$('disconnect').disabled=blocked||!(connected||remote.hasDevice);
+ $('connectionState').textContent=t(connected?'connected':remote.busy?'connecting':'disconnected');$('connectionState').classList.toggle('connected',connected);$('readRemote').disabled=!connected||blocked;$('connect').textContent=t(connected||remote.nextSelection?'next':upgrade.state==='awaiting-reconnect'||remote.hasDevice&&remote.readAt?'reconnect':'connect');$('connect').disabled=blocked;$('disconnect').disabled=blocked||!(connected||remote.hasDevice);
  $('selectedFilename').textContent=file?file.filename:t('noFile');
  $('selectedVersion').textContent=file?(file.version?t('version')+' '+file.version:t('localVersion'))+' · '+t(file.source==='local'?'sourcePhone':'sourceServer')+(file.batchApproved?' · '+t('approved'):''):t('chooseSource');
  let message=t(remote.busy?'reading':connected?'choose':remote.readAt?'historical':'start');
  const states={retained:()=>t('retained'),preparing:()=>t('preparing'),ready:()=>t(file?.batchApproved?'batchReady':'ready'),transferring:()=>t('transferring',{progress:upgrade.progress||0}),verifying:()=>t('verifying'),installed:()=>t('installed',{version:upgrade.actualFirmware||file?.version||'—'}),'installation-unconfirmed':()=>upgrade.actualFirmware?t('unconfirmedRead',{version:upgrade.actualFirmware}):t('unconfirmed'),'awaiting-reconnect':()=>t('awaitingReconnect'),'model-mismatch':()=>t('modelMismatch',{actual:upgrade.detectedModel||remote.metadata?.model||'—',expected:upgrade.expectedModel||file?.model||'—'}),error:()=>errorMessage(upgrade.message)};
  if(states[upgrade.state])message=states[upgrade.state]();else if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');else if(/failed|unavailable|cancelled|timed out/i.test(remote.message||''))message=errorMessage(remote.message);
  if(['retained','idle'].includes(upgrade.state)){if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');}
- if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t('retry');
+ if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t(remote.readAt?'historical':'retry');
+ if(/partially refreshed/i.test(remote.message||'')&&!blocked)message=t('partialRead');
  $('screenMessage').hidden=!message;$('screenMessage').textContent=message;$('screenMessage').classList.toggle('error',['error','model-mismatch'].includes(upgrade.state));$('screenMessage').classList.toggle('success',upgrade.state==='installed');$('webInstall').textContent=t(upgrade.state==='transferring'?'updating':'update');
 }
 function errorMessage(message=''){

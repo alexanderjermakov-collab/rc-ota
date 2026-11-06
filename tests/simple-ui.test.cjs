@@ -29,3 +29,17 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
 });
 
 test('the initial screen hides the empty pairing hint',()=>{const s=setup();assert.equal(s.node('screenMessage').hidden,true);assert.equal(s.node('screenMessage').textContent,'');});
+test('Pro retains already read identifiers when the GATT link drops',()=>{
+ const s=setup();
+ s.node('proButton').onclick();
+ s.node('proPassword').value='1111';
+ s.node('proForm').onsubmit({preventDefault(){}});
+ const metadata={model:'TEST',pid:16,vid:4660,software:'V1'};
+ s.window.RcSimpleUI.remote({connected:true,hasDevice:true,readAt:1,metadata,freshFields:['pid','vid','software']});
+ assert.equal(s.node('proReadNote').hidden,true);
+ s.window.RcSimpleUI.remote({connected:false,hasDevice:true,readAt:1,metadata,freshFields:[],message:'Remote GATT disconnected.'});
+ assert.equal(s.node('proPid').textContent,'0x0010 (16)');
+ assert.equal(s.node('proSoftware').textContent,'V1');
+ assert.equal(s.node('proReadNote').hidden,false);
+ assert.equal(s.node('connect').textContent,'Reconnect');
+});
