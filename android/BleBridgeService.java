@@ -66,7 +66,15 @@ public class BleBridgeService extends Service {
         }
         if(!"GET".equals(method))return LocalHttpServer.error(405,"Method not allowed");
         String file,mime;
-        switch(path){case "/":case "/index.html":file="local/index.html";mime="text/html; charset=utf-8";break;case "/local.js":file="local/app.js";mime="text/javascript; charset=utf-8";break;case "/local.css":file="local/style.css";mime="text/css; charset=utf-8";break;case "/customer-ui.js":file="customer-ui.js";mime="text/javascript; charset=utf-8";break;case "/ota.js":file="ota.js";mime="text/javascript; charset=utf-8";break;default:return LocalHttpServer.error(404,"Not found");}
+        switch(path){
+            case "/":case "/index.html":file="index.html";mime="text/html; charset=utf-8";break;
+            case "/mobile.css":file="mobile.css";mime="text/css; charset=utf-8";break;
+            case "/sharp-logo.svg":file="sharp-logo.svg";mime="image/svg+xml";break;
+            case "/app.js":case "/simple-ui.js":case "/local-bridge.js":case "/customer-ui.js":
+            case "/ota.js":case "/ota-client.js":case "/telink-ota.js":case "/firmware-store.js":case "/web-upgrade.js":
+                file=path.substring(1);mime="text/javascript; charset=utf-8";break;
+            default:return LocalHttpServer.error(404,"Not found");
+        }
         try(InputStream in=getAssets().open("web/"+file);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] bytes=new byte[4096];int n;while((n=in.read(bytes))!=-1)out.write(bytes,0,n);return new LocalHttpServer.Response(200,mime,out.toByteArray());}
     }
     LocalHttpServer.Response api(String method,String path,String body){
@@ -83,6 +91,9 @@ public class BleBridgeService extends Service {
                     if(selected!=null)connect(selected);else if(address.isEmpty())restore();else return LocalHttpServer.error(400,"Selected remote is no longer paired. Refresh the list or pair it in Android settings.");
                 }catch(SecurityException e){return LocalHttpServer.error(403,"Bluetooth permission is required");}
                 return LocalHttpServer.Response.json(202,snapshot().toString());
+            case "/api/refresh":
+                if(!verified||gatt==null||activeRead!=null)return LocalHttpServer.error(409,"Connect a remote before refreshing.");
+                queueInformation();return LocalHttpServer.Response.json(202,snapshot().toString());
             case "/api/disconnect":disconnect("Disconnected. Last read data is retained.","disconnected");return LocalHttpServer.Response.json(200,snapshot().toString());
             case "/api/ota":String model=request.optString("model","").trim();if(model.isEmpty()||model.length()>80||model.matches(".*[\\x00-\\x1f/\\\\].*"))return LocalHttpServer.error(400,"Exact remote model is required");checkOta(model);return LocalHttpServer.Response.json(202,snapshot().toString());
             default:return LocalHttpServer.error(404,"Unknown API command");
@@ -94,7 +105,7 @@ public class BleBridgeService extends Service {
     JSONObject snapshot(){
         JSONArray devices=new JSONArray();try{devices=bonded();}catch(SecurityException ignored){}
         if(gatt!=null&&(!permitted()||!enabled()))disconnect("Bluetooth is unavailable or its permission was revoked. Open RC OTA or Android settings.","error");
-        return obj("version","0.7.0","transport","Local Android BLE Bridge","serviceRunning",ready,"connectPermission",permitted(),"bluetoothAvailable",adapter!=null,"bluetoothEnabled",enabled(),"devices",devices,"selectedAddress",target==null?"":target.getAddress(),"bondState",bondState(),"stage",stage,"gattConnected",gattConnected,"verified",verified,"message",message,"metadata",metadata,"readAt",readAt,"dataStale",!verified,"services",services,"ota",ota,"trace",trace);
+        return obj("version","0.17.3","transport","Local Android BLE Bridge","serviceRunning",ready,"connectPermission",permitted(),"bluetoothAvailable",adapter!=null,"bluetoothEnabled",enabled(),"devices",devices,"selectedAddress",target==null?"":target.getAddress(),"bondState",bondState(),"stage",stage,"gattConnected",gattConnected,"verified",verified,"message",message,"metadata",metadata,"readAt",readAt,"dataStale",!verified,"services",services,"ota",ota,"trace",trace);
     }
     void restore(){
         if(restoreAttempted||gatt!=null||stopping)return;if(!enabled()){status("Enable Bluetooth in Android settings, then select Connect.");return;}restoreAttempted=true;
@@ -137,17 +148,29 @@ public class BleBridgeService extends Service {
             if(link!=gatt||stopping)return;if(result!=BluetoothGatt.GATT_SUCCESS||link.getServices().isEmpty()){disconnect("Service discovery failed ("+result+").","error");return;}
             handler.removeCallbacks(connectTimeout);services=new JSONArray();
             for(BluetoothGattService service:link.getServices()){JSONArray chars=new JSONArray();for(BluetoothGattCharacteristic c:service.getCharacteristics())chars.put(obj("uuid",c.getUuid().toString(),"properties",c.getProperties()));services.put(obj("uuid",service.getUuid().toString(),"characteristics",chars));}
-            status("Services discovered. Reading model, firmware, software and battery…");addRead("180a","2a24");addRead("180a","2a26");addRead("180a","2a28");addRead("180f","2a19");nextRead();
+            queueInformation();
         });}
         @Override public void onCharacteristicRead(BluetoothGatt link,BluetoothGattCharacteristic c,int result){readResult(link,c,c.getValue(),result);}
         @Override public void onCharacteristicRead(BluetoothGatt link,BluetoothGattCharacteristic c,byte[] bytes,int result){readResult(link,c,bytes,result);}
     };
+    void queueInformation(){
+        stage="reading";
+        addRead("180a","2a24");addRead("180a","2a26");addRead("180a","2a28");addRead("180a","2a50");addRead("180f","2a19");
+        status("Reading remote information…");nextRead();
+    }
     void readResult(BluetoothGatt link,BluetoothGattCharacteristic characteristic,byte[] bytes,int result){
         final byte[] value=bytes==null?null:bytes.clone();handler.post(()->{
             if(link!=gatt||stopping||activeRead==null||!activeRead.getUuid().equals(characteristic.getUuid()))return;
             handler.removeCallbacks(readTimeout);activeRead=null;status("GATT read "+characteristic.getUuid()+": status "+result+", bytes "+(value==null?0:value.length));
             if(result==BluetoothGatt.GATT_SUCCESS&&value!=null&&value.length>0){UUID id=characteristic.getUuid();boolean valid=false;
                 if(id.equals(uuid("2a19"))){int level=value[0]&255;if(level<=100){put(metadata,"level",level);valid=true;}}
+                else if(id.equals(uuid("2a50"))){
+                    if(value.length==7&&(value[0]==1||value[0]==2)){
+                        put(metadata,"vid",(value[1]&255)|((value[2]&255)<<8));
+                        put(metadata,"pid",(value[3]&255)|((value[4]&255)<<8));
+                        valid=true;
+                    }
+                }
                 else{String text=new String(value,StandardCharsets.UTF_8).replace("\u0000","").trim();if(!text.isEmpty()){put(metadata,id.equals(uuid("2a24"))?"model":id.equals(uuid("2a26"))?"firmware":"software",text);valid=true;}}
                 if(valid)readAt=System.currentTimeMillis();
             }nextRead();

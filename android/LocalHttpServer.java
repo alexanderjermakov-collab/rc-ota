@@ -69,7 +69,11 @@ final class LocalHttpServer implements Closeable {
         }
         if(!HOST.equals(headers.get("host")))return error(403,"Invalid local host");
         String origin=headers.get("origin");if(origin!=null&&!ORIGIN.equals(origin))return error(403,"Origin is not allowed");
-        if("cross-site".equals(headers.get("sec-fetch-site")))return error(403,"Cross-site access is not allowed");
+        boolean launcherNavigation="GET".equals(first[0])
+            && ("/".equals(first[1])||"/index.html".equals(first[1]))
+            && "navigate".equals(headers.get("sec-fetch-mode"))
+            && "document".equals(headers.get("sec-fetch-dest"));
+        if("cross-site".equals(headers.get("sec-fetch-site"))&&!launcherNavigation)return error(403,"Cross-site access is not allowed");
         if(headers.containsKey("transfer-encoding"))return error(400,"Chunked requests are not supported");
         String path=first[1].split("\\?",2)[0];boolean api=path.startsWith("/api/");
         if(api&&!MessageDigest.isEqual(("Bearer "+token).getBytes(StandardCharsets.UTF_8),headers.getOrDefault("authorization","").getBytes(StandardCharsets.UTF_8)))return error(401,"Open RC OTA and select Open in Chrome to authorize this tab.");

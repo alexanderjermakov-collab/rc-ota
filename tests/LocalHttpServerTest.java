@@ -23,6 +23,10 @@ public final class LocalHttpServerTest {
             status(200,get("/index.html",""));
             status(401,get("/api/state",""));status(401,get("/api/state","Authorization: Bearer wrong\r\n"));
             check(calls.get()==1,"Unauthorized requests never reach BLE routes");
+            String navigation="Sec-Fetch-Site: cross-site\r\nSec-Fetch-Mode: navigate\r\nSec-Fetch-Dest: document\r\n";
+            status(200,get("/",navigation));
+            status(403,get("/api/state",auth+navigation));
+            status(403,get("/",navigation.replace("document","iframe")));
             String valid=get("/api/state",auth);status(200,valid);check(valid.contains("Cache-Control: no-store"),"State not cached");check(valid.contains("frame-ancestors 'none'"),"No iframe access");check(!valid.contains("Access-Control-Allow-Origin"),"No permissive CORS");
             status(200,get("/api/state",auth+"Origin: "+LocalHttpServer.ORIGIN+"\r\n"));
             status(403,get("/api/state",auth+"Origin: https://attacker.example\r\n"));status(403,get("/api/state",auth+"Origin: null\r\n"));

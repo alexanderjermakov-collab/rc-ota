@@ -14,6 +14,10 @@ const strings={
   "unlockPro": "Unlock Pro",
   "softwareVersion": "Software version",
   "macUnavailable": "Use the Android BLE Bridge to read the MAC address",
+  "openBridge": "Open Android BLE Bridge",
+  "downloadBridge": "Download Android app",
+  "openWebUpgrade": "Open the website to update firmware",
+  "pairedRemote": "Paired remote",
   "lastRead": "Showing the last values read from this remote.",
   "partialRead": "Some fields could not be refreshed. The Bluetooth link is still open.",
   "openOta": "Open OTA Info.txt",
@@ -119,6 +123,10 @@ const strings={
   "unlockPro": "Odblokuj Pro",
   "softwareVersion": "Wersja oprogramowania",
   "macUnavailable": "Użyj mostka Android BLE Bridge, aby odczytać adres MAC",
+  "openBridge": "Otwórz mostek Android BLE",
+  "downloadBridge": "Pobierz aplikację na Androida",
+  "openWebUpgrade": "Otwórz stronę aktualizacji oprogramowania",
+  "pairedRemote": "Sparowany pilot",
   "lastRead": "Wyświetlono ostatnie wartości odczytane z tego pilota.",
   "partialRead": "Nie udało się odświeżyć części danych. Połączenie Bluetooth nadal działa.",
   "openOta": "Otwórz OTA Info.txt",
@@ -230,6 +238,9 @@ function renderPro(){
  const id=key=>Number.isInteger(field(key))?'0x'+field(key).toString(16).toUpperCase().padStart(4,'0')+' ('+field(key)+')':'—';
  $('proButton').setAttribute('aria-pressed',String(pro));
  $('proRemote').hidden=!pro;
+ $('proBridgeLinks').hidden=!pro||!!remote.native;
+ $('bridgeUpgradeLink').hidden=!remote.native;
+ $('webUpgrade').hidden=!!remote.native;
  $('proMac').textContent=/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(metadata.address||'')?metadata.address:!remote.native?t('macUnavailable'):'—';
  $('proVid').textContent=id('vid');
  $('proPid').textContent=id('pid');
@@ -256,6 +267,7 @@ function render(){
  if(states[upgrade.state])message=states[upgrade.state]();else if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');else if(/failed|unavailable|cancelled|timed out/i.test(remote.message||''))message=errorMessage(remote.message);
  if(['retained','idle'].includes(upgrade.state)){if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');}
  if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t(remote.readAt?'historical':'retry');
+ if(remote.native)message=remote.message||message;
  if(/partially refreshed/i.test(remote.message||'')&&!blocked)message=t('partialRead');
  $('screenMessage').hidden=!message;$('screenMessage').textContent=message;$('screenMessage').classList.toggle('error',['error','model-mismatch'].includes(upgrade.state));$('screenMessage').classList.toggle('success',upgrade.state==='installed');$('webInstall').textContent=t(upgrade.state==='transferring'?'updating':'update');
 }
