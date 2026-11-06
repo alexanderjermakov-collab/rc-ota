@@ -27,7 +27,15 @@ public class MainActivity extends Activity {
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)button(root,"Enable bridge notification",()->requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},11));
         ScrollView scroll=new ScrollView(this);scroll.addView(root);setContentView(scroll);
         Uri link=getIntent().getData();
-        if(Intent.ACTION_VIEW.equals(getIntent().getAction())&&Uri.parse("rcota://bridge/pro").equals(link))launch();
+        if(Intent.ACTION_VIEW.equals(getIntent().getAction())){
+            if(Uri.parse("rcota://bridge/pro").equals(link))launch();
+            else if(Uri.parse("rcota://bridge/forget").equals(link)){
+                BleBridgeService service=BleBridgeService.instance;
+                if(service!=null)service.prepareForget();
+                startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
+                finish();
+            }
+        }
     }
     void button(LinearLayout root,String label,Runnable action){Button button=new Button(this);button.setText(label);button.setOnClickListener(v->action.run());root.addView(button,new LinearLayout.LayoutParams(-1,-2));}
     void showStatus(){BleBridgeService service=BleBridgeService.instance;status.setText(service!=null&&service.ready?"Bridge running · "+service.message:BleBridgeService.startupError!=null?BleBridgeService.startupError:"Bridge stopped. Select Open in Chrome to start.");}

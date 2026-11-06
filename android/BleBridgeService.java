@@ -32,9 +32,10 @@ public class BleBridgeService extends Service {
     JSONArray services=new JSONArray();
     long readAt;
     boolean gattConnected,verified,stopping,restoreAttempted;
+    String pendingForget="";
     int otaGeneration;
     final Runnable connectTimeout=()->disconnect("Connection timed out. Wake the remote and select Connect.","error");
-    final Runnable readTimeout=()->disconnect("GATT read timed out. Wake the remote and reconnect.","error");
+    final Runnable readTimeout=()->disconnect("The remote did not respond. Last values are retained. Wake the remote and reconnect.","error");
     static UUID uuid(String id){return UUID.fromString("0000"+id+"-0000-1000-8000-00805f9b34fb");}
     static JSONObject obj(Object... pairs){JSONObject value=new JSONObject();for(int i=0;i<pairs.length;i+=2)put(value,(String)pairs[i],pairs[i+1]);return value;}
     static void put(JSONObject value,String key,Object data){try{value.put(key,data);}catch(JSONException e){throw new IllegalArgumentException(e);}}
@@ -102,10 +103,22 @@ public class BleBridgeService extends Service {
     void status(String text){message=text;if(trace.length()>=200)trace.remove(0);trace.put(obj("timeMillis",System.currentTimeMillis(),"message",text));android.util.Log.i("RCOTA",text);}
     JSONArray bonded(){JSONArray rows=new JSONArray();if(!enabled())return rows;for(BluetoothDevice device:adapter.getBondedDevices())if(RemotePolicy.supported(device.getName()))rows.put(obj("name",device.getName(),"address",device.getAddress(),"paired",true));return rows;}
     String bondState(){try{return target!=null&&permitted()&&target.getBondState()==BluetoothDevice.BOND_BONDED?"bonded":"unknown";}catch(SecurityException e){return "unknown";}}
+    void prepareForget(){
+        if(target==null)return;
+        pendingForget=target.getAddress();
+        disconnect("In Android Bluetooth settings, open the SHARP remote and tap Forget.","paired");
+        getSharedPreferences("MainActivity",0).edit().remove("lastRemote").apply();
+        target=null;metadata=new JSONObject();readAt=0;services=new JSONArray();ota=new JSONObject();
+    }
     JSONObject snapshot(){
         JSONArray devices=new JSONArray();try{devices=bonded();}catch(SecurityException ignored){}
+        if(!pendingForget.isEmpty()&&enabled()){
+            boolean stillPaired=false;
+            for(int i=0;i<devices.length();i++)if(pendingForget.equals(devices.optJSONObject(i).optString("address")))stillPaired=true;
+            if(!stillPaired){pendingForget="";stage="idle";status("Android confirmed that the remote was removed from paired devices.");}
+        }
         if(gatt!=null&&(!permitted()||!enabled()))disconnect("Bluetooth is unavailable or its permission was revoked. Open RC OTA or Android settings.","error");
-        return obj("version","0.17.3","transport","Local Android BLE Bridge","serviceRunning",ready,"connectPermission",permitted(),"bluetoothAvailable",adapter!=null,"bluetoothEnabled",enabled(),"devices",devices,"selectedAddress",target==null?"":target.getAddress(),"bondState",bondState(),"stage",stage,"gattConnected",gattConnected,"verified",verified,"message",message,"metadata",metadata,"readAt",readAt,"dataStale",!verified,"services",services,"ota",ota,"trace",trace);
+        return obj("version","0.17.4","transport","Local Android BLE Bridge","serviceRunning",ready,"connectPermission",permitted(),"bluetoothAvailable",adapter!=null,"bluetoothEnabled",enabled(),"devices",devices,"selectedAddress",target==null?"":target.getAddress(),"bondState",bondState(),"stage",stage,"gattConnected",gattConnected,"verified",verified,"message",message,"metadata",metadata,"readAt",readAt,"dataStale",!verified,"services",services,"ota",ota,"trace",trace);
     }
     void restore(){
         if(restoreAttempted||gatt!=null||stopping)return;if(!enabled()){status("Enable Bluetooth in Android settings, then select Connect.");return;}restoreAttempted=true;
@@ -133,9 +146,9 @@ public class BleBridgeService extends Service {
     void addRead(String service,String id){BluetoothGattService s=gatt.getService(uuid(service));BluetoothGattCharacteristic c=s==null?null:s.getCharacteristic(uuid(id));if(c!=null&&(c.getProperties()&BluetoothGattCharacteristic.PROPERTY_READ)!=0)reads.add(c);}
     void nextRead(){
         if(gatt==null||activeRead!=null)return;
-        if(reads.isEmpty()){verified=readAt>0;stage=verified?"verified":"gatt-connected";status(verified?"Live GATT data verified. No firmware was written.":"GATT connected, but no standard device information could be read. Data is not verified.");if(verified&&metadata.has("model"))checkOta(metadata.optString("model"));return;}
+        if(reads.isEmpty()){handler.removeCallbacks(readTimeout);verified=readAt>0;stage=verified?"verified":"gatt-connected";status(verified?"Live GATT data verified. No firmware was written.":"GATT connected, but no standard device information could be read. Data is not verified.");if(verified&&metadata.has("model"))checkOta(metadata.optString("model"));return;}
         activeRead=reads.remove();stage="reading";
-        try{if(gatt.readCharacteristic(activeRead)){handler.postDelayed(readTimeout,8000);return;}}catch(Exception e){status("GATT read could not start: "+e.getClass().getSimpleName());}
+        try{if(gatt.readCharacteristic(activeRead))return;}catch(Exception e){status("GATT read could not start: "+e.getClass().getSimpleName());}
         activeRead=null;handler.post(this::nextRead);
     }
     final BluetoothGattCallback callback=new BluetoothGattCallback(){
@@ -156,12 +169,12 @@ public class BleBridgeService extends Service {
     void queueInformation(){
         stage="reading";
         addRead("180a","2a24");addRead("180a","2a26");addRead("180a","2a28");addRead("180a","2a50");addRead("180f","2a19");
-        status("Reading remote information…");nextRead();
+        status("Reading remote information…");handler.removeCallbacks(readTimeout);handler.postDelayed(readTimeout,5000);nextRead();
     }
     void readResult(BluetoothGatt link,BluetoothGattCharacteristic characteristic,byte[] bytes,int result){
         final byte[] value=bytes==null?null:bytes.clone();handler.post(()->{
             if(link!=gatt||stopping||activeRead==null||!activeRead.getUuid().equals(characteristic.getUuid()))return;
-            handler.removeCallbacks(readTimeout);activeRead=null;status("GATT read "+characteristic.getUuid()+": status "+result+", bytes "+(value==null?0:value.length));
+            activeRead=null;status("GATT read "+characteristic.getUuid()+": status "+result+", bytes "+(value==null?0:value.length));
             if(result==BluetoothGatt.GATT_SUCCESS&&value!=null&&value.length>0){UUID id=characteristic.getUuid();boolean valid=false;
                 if(id.equals(uuid("2a19"))){int level=value[0]&255;if(level<=100){put(metadata,"level",level);valid=true;}}
                 else if(id.equals(uuid("2a50"))){

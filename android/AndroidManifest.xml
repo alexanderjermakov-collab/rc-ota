@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.scem.rcota" android:versionCode="173" android:versionName="0.17.3">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.scem.rcota" android:versionCode="174" android:versionName="0.17.4">
   <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="34"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -21,6 +21,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="rcota" android:host="bridge" android:path="/pro"/>
+        <data android:path="/forget"/>
       </intent-filter>
       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter>
     </activity>

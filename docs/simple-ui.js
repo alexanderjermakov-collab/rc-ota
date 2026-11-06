@@ -16,7 +16,7 @@ const strings={
   "macUnavailable": "Use the Android BLE Bridge to read the MAC address",
   "openBridge": "Open Android BLE Bridge",
   "downloadBridge": "Download Android app",
-  "openWebUpgrade": "Open the website to update firmware",
+  "openWebUpgrade": "Connect for firmware",
   "pairedRemote": "Paired remote",
   "lastRead": "Showing the last values read from this remote.",
   "partialRead": "Some fields could not be refreshed. The Bluetooth link is still open.",
@@ -125,7 +125,7 @@ const strings={
   "macUnavailable": "Użyj mostka Android BLE Bridge, aby odczytać adres MAC",
   "openBridge": "Otwórz mostek Android BLE",
   "downloadBridge": "Pobierz aplikację na Androida",
-  "openWebUpgrade": "Otwórz stronę aktualizacji oprogramowania",
+  "openWebUpgrade": "Połącz w celu aktualizacji",
   "pairedRemote": "Sparowany pilot",
   "lastRead": "Wyświetlono ostatnie wartości odczytane z tego pilota.",
   "partialRead": "Nie udało się odświeżyć części danych. Połączenie Bluetooth nadal działa.",
@@ -240,7 +240,8 @@ function renderPro(){
  $('proRemote').hidden=!pro;
  $('proBridgeLinks').hidden=!pro||!!remote.native;
  $('bridgeUpgradeLink').hidden=!remote.native;
- $('webUpgrade').hidden=!!remote.native;
+ $('nativeForget').hidden=!remote.native||!remote.hasDevice||!!remote.busy||!!remote.locked;
+ $('disconnect').hidden=!!remote.native&&!$('nativeForget').hidden;
  $('proMac').textContent=/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(metadata.address||'')?metadata.address:!remote.native?t('macUnavailable'):'—';
  $('proVid').textContent=id('vid');
  $('proPid').textContent=id('pid');
@@ -305,6 +306,7 @@ $('proOtaFile').onchange=async event=>{
  }
  renderPro();
 };
+$('enableWebFirmware').onclick=()=>window.RcLocalBridge?.enableFirmware();
 $('language').onchange=event=>setLanguage(event.target.value);
 $('readRemote').onclick=()=>window.RcWebRemote?.read();
 $('connect').onclick=()=>window.RcWebRemote?.context()?.connected?window.RcWebRemote.next():window.RcWebRemote?.connect();
