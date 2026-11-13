@@ -30,6 +30,29 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
 
 test('the initial screen hides the empty pairing hint',()=>{const s=setup();assert.equal(s.node('screenMessage').hidden,true);assert.equal(s.node('screenMessage').textContent,'');});
 
+test('Help switches between normal instructions and accurate Pro mode differences',()=>{
+ const s=setup();assert.equal(s.node('normalHelp').hidden,false);assert.equal(s.node('proHelp').hidden,true);
+ s.node('proButton').onclick();s.node('proPassword').value='1111';s.node('proForm').onsubmit({preventDefault(){}});
+ s.node('helpButton').onclick();assert.equal(s.node('helpDialog').open,true);
+ assert.equal(s.node('normalHelp').hidden,true);assert.equal(s.node('proHelp').hidden,false);assert.equal(s.node('helpHeading').textContent,'Help — Pro');
+ const translated=key=>s.document.querySelectorAll('[data-i18n]').find(n=>n.getAttribute('data-i18n')===key).textContent;
+ assert.match(translated('proVersionHelp'),/upgrade, downgrade.*same version.*Server updates still require a newer/);
+ assert.match(translated('proModelHelp'),/enable Allow a different model name.*warning and confirmation/);
+ assert.match(translated('proDataHelp'),/MAC.*VID.*PID.*hexadecimal and decimal/);
+ assert.match(translated('proMacHelp'),/does not expose.*MAC/);
+ assert.equal(s.node('shareDiagnostic').textContent,'Share Diagnostic');
+ s.node('language').onchange({target:{value:'pl'}});
+ assert.equal(s.node('helpHeading').textContent,'Pomoc — Pro');assert.equal(s.node('shareDiagnostic').textContent,'Udostępnij diagnostykę');
+ s.node('proButton').onclick();assert.equal(s.node('normalHelp').hidden,false);assert.equal(s.node('proHelp').hidden,true);
+});
+
+test('diagnostic sharing feedback is shown in the selected language inside Help',()=>{
+ const s=setup();s.window.RcSimpleUI.diagnosticStatus('diagnosticSaved');
+ assert.equal(s.node('diagnosticStatus').hidden,false);assert.match(s.node('diagnosticStatus').textContent,/Attach it to an email/);
+ s.node('language').onchange({target:{value:'pl'}});s.window.RcSimpleUI.diagnosticStatus('diagnosticCancelled');
+ assert.equal(s.node('diagnosticStatus').textContent,'Anulowano udostępnianie.');
+});
+
 test('From phone opens the native picker synchronously, including before remote connection',()=>{
  const s=setup();let opens=0;s.node('webFirmware').click=()=>{opens++};
  s.node('webChooseFile').onclick();assert.equal(opens,1);

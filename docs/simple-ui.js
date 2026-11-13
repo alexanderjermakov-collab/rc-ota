@@ -4,6 +4,19 @@ const $=id=>document.getElementById(id);
 if(!$('aboutDialog'))return;
 const strings={
  "en": {
+  "diagnosticError": "Could not prepare the diagnostic report. Try Save diagnostics.",
+  "diagnosticSaved": "Diagnostic JSON saved. Attach it to an email or send it with another app.",
+  "diagnosticCancelled": "Sharing cancelled.",
+  "diagnosticShared": "Diagnostics handed to the selected sharing app.",
+  "shareDiagnostic": "Share Diagnostic",
+  "proChecksHelp": "Pro retains battery, BIN size and hash, OTA service and live-device checks. The operator is responsible for hardware and firmware compatibility.",
+  "proMacHelp": "Web Bluetooth does not expose the physical MAC address. In the web app this field is unavailable; it is not reconstructed from the browser device ID. VID and PID appear when the remote provides them.",
+  "proDataHelp": "Pro shows additional information: MAC address (when available), VID (Vendor ID), PID (Product ID), software version and OTA server metadata. VID and PID are displayed in hexadecimal and decimal.",
+  "proModelHelp": "Normal mode requires a BIN filename matching the connected model. In Pro, enable Allow a different model name (local BIN) to bypass that match. A separate warning and confirmation are shown before each overridden installation.",
+  "proVersionHelp": "Local BINs can upgrade, downgrade or reinstall the same version without a newer-version restriction. This is also available for local BINs in normal mode. Server updates still require a newer version in both modes.",
+  "modeComparison": "Normal mode and Pro",
+  "proHelpIntro": "Pro is an engineering mode for firmware testing and model renaming.",
+  "proHelpTitle": "Help — Pro",
   "proOverride": "Allow a different model name (local BIN)",
   "proOverrideHint": "For engineering use after a model rename. Confirm hardware compatibility before installing.",
   "overrideTitle": "Different model name",
@@ -26,7 +39,7 @@ const strings={
   "wrongPassword": "Incorrect password.",
   "unlockPro": "Unlock Pro",
   "softwareVersion": "Software version",
-  "macUnavailable": "Use the Android BLE Bridge to read the MAC address",
+  "macUnavailable": "MAC is not exposed by Web Bluetooth",
   "openBridge": "Open Android BLE Bridge",
   "downloadBridge": "Download Android app",
   "openWebUpgrade": "Connect for firmware",
@@ -96,7 +109,7 @@ const strings={
   "fileNote": "Battery: at least 30%. Local BINs allow upgrade, downgrade or reinstall; server firmware must be newer. The BIN is retained in this browser when local storage is available. Each remote still needs a separate Update remote press.",
   "reconnectHelp": "Forget does not delete Android pairing. After Forget, Connect opens a fresh device chooser. If Android pairing is stale, remove only that remote in Android Bluetooth settings and repeat steps 1–4.",
   "support": "Troubleshooting",
-  "diagnosticsHint": "Save a report with remote information and the activity log for support.",
+  "diagnosticsHint": "Save or share a JSON report containing remote information, firmware checks and the activity log. Choose the recipient in your sharing app.",
   "saveDiagnostics": "Save diagnostics",
   "next": "Next remote",
   "retained": "BIN retained. Connect the next remote of the same model.",
@@ -127,6 +140,19 @@ const strings={
   "permissionError": "Allow this remote in Chrome and confirm any Android pairing request or notification."
  },
  "pl": {
+  "diagnosticError": "Nie udało się przygotować raportu. Spróbuj zapisać diagnostykę.",
+  "diagnosticSaved": "Zapisano plik JSON diagnostyki. Dołącz go do wiadomości e-mail lub wyślij inną aplikacją.",
+  "diagnosticCancelled": "Anulowano udostępnianie.",
+  "diagnosticShared": "Przekazano diagnostykę do wybranej aplikacji.",
+  "shareDiagnostic": "Udostępnij diagnostykę",
+  "proChecksHelp": "Pro zachowuje kontrolę baterii, rozmiaru i skrótu BIN, usługi OTA oraz danych podłączonego urządzenia. Operator odpowiada za zgodność sprzętu i oprogramowania.",
+  "proMacHelp": "Web Bluetooth nie udostępnia fizycznego adresu MAC. W aplikacji webowej to pole jest niedostępne; nie jest odtwarzane z identyfikatora urządzenia przeglądarki. VID i PID są widoczne, gdy pilot je udostępnia.",
+  "proDataHelp": "Pro pokazuje dodatkowe informacje: adres MAC (gdy dostępny), VID (identyfikator producenta), PID (identyfikator produktu), wersję oprogramowania oraz metadane serwera OTA. VID i PID są wyświetlane szesnastkowo i dziesiętnie.",
+  "proModelHelp": "Tryb normalny wymaga zgodności nazwy pliku BIN z podłączonym modelem. W Pro włącz Zezwól na inną nazwę modelu (lokalny BIN), aby pominąć to dopasowanie. Przed każdą taką instalacją pojawia się osobne ostrzeżenie i potwierdzenie.",
+  "proVersionHelp": "Lokalny BIN umożliwia aktualizację, obniżenie wersji i ponowną instalację tej samej wersji bez wymogu nowszej wersji. Dotyczy to także lokalnych BIN w trybie normalnym. Aktualizacje z serwera w obu trybach nadal wymagają nowszej wersji.",
+  "modeComparison": "Tryb normalny i Pro",
+  "proHelpIntro": "Pro to tryb inżynierski do testowania oprogramowania i zmiany nazwy modelu.",
+  "proHelpTitle": "Pomoc — Pro",
   "proOverride": "Zezwól na inną nazwę modelu (lokalny BIN)",
   "proOverrideHint": "Do prac inżynierskich po zmianie nazwy modelu. Przed instalacją sprawdź zgodność sprzętu.",
   "overrideTitle": "Inna nazwa modelu",
@@ -149,7 +175,7 @@ const strings={
   "wrongPassword": "Nieprawidłowe hasło.",
   "unlockPro": "Odblokuj Pro",
   "softwareVersion": "Wersja oprogramowania",
-  "macUnavailable": "Użyj mostka Android BLE Bridge, aby odczytać adres MAC",
+  "macUnavailable": "MAC nie jest udostępniany przez Web Bluetooth",
   "openBridge": "Otwórz mostek Android BLE",
   "downloadBridge": "Pobierz aplikację na Androida",
   "openWebUpgrade": "Połącz w celu aktualizacji",
@@ -219,7 +245,7 @@ const strings={
   "fileNote": "Bateria: co najmniej 30%. Lokalny BIN umożliwia aktualizację, obniżenie wersji lub ponowną instalację; wersja z serwera musi być nowsza. BIN jest zachowywany w tej przeglądarce, gdy dostępna jest pamięć lokalna. Dla każdego pilota osobno naciskasz Aktualizuj pilot.",
   "reconnectHelp": "Zapomnij nie usuwa parowania Androida. Po tej operacji Połącz otwiera nowy wybór urządzenia. Jeśli parowanie Androida jest nieaktualne, usuń tylko ten pilot w ustawieniach Bluetooth i powtórz kroki 1–4.",
   "support": "Rozwiązywanie problemów",
-  "diagnosticsHint": "Zapisz raport z danymi pilota i dziennikiem działania dla pomocy technicznej.",
+  "diagnosticsHint": "Zapisz lub udostępnij raport JSON z danymi pilota, kontrolą oprogramowania i dziennikiem działania. Odbiorcę wybierasz w aplikacji do udostępniania.",
   "saveDiagnostics": "Zapisz diagnostykę",
   "next": "Następny pilot",
   "retained": "BIN zachowany. Połącz następny pilot tego samego modelu.",
@@ -265,6 +291,7 @@ function renderPro(){
  const field=key=>metadata[key];
  const id=key=>Number.isInteger(field(key))?'0x'+field(key).toString(16).toUpperCase().padStart(4,'0')+' ('+field(key)+')':'—';
  $('proButton').setAttribute('aria-pressed',String(pro));
+ $('normalHelp').hidden=pro;$('proHelp').hidden=!pro;$('helpHeading').textContent=t(pro?'proHelpTitle':'help');
  $('proRemote').hidden=!pro;
  $('proFirmware').hidden=!pro;
  $('proButton').disabled=!!remote.locked;
@@ -307,7 +334,7 @@ function errorMessage(message=''){
  for(const [pattern,key] of [[/CORS|could not read the manufacturer|Failed to fetch/i,'cors'],[/30%|battery/i,'lowBattery'],[/exact model|filename|different.*model|model.*changed/i,'wrongModel'],[/newer|No upgrade/i,'noNewer'],[/MD5|file changed|checksum/i,'badFile'],[/cancelled/i,'cancelled'],[/unavailable.*browser|Bluetooth is unavailable/i,'browser'],[/disconnected|timed out|Connection failed|link lost/i,'retry']])if(pattern.test(message))return t(key);
  return t('error');
 }
-window.RcSimpleUI={isPro:()=>pro,confirmModelOverride(selected,model){if(!pro||!$('proModelOverride').checked)return Promise.resolve(false);$('overrideRemoteModel').textContent=model;$('overrideFileModel').textContent=selected.fileModel||t('unknownFileModel');$('overrideFilename').textContent=selected.filename;return new Promise(resolve=>{pendingOverride=resolve;$('modelOverrideDialog').showModal();});},serverInfo(value){serverInfo=value;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
+window.RcSimpleUI={diagnosticStatus(key){$('diagnosticStatus').textContent=t(key);$('diagnosticStatus').hidden=false;},isPro:()=>pro,confirmModelOverride(selected,model){if(!pro||!$('proModelOverride').checked)return Promise.resolve(false);$('overrideRemoteModel').textContent=model;$('overrideFileModel').textContent=selected.fileModel||t('unknownFileModel');$('overrideFilename').textContent=selected.filename;return new Promise(resolve=>{pendingOverride=resolve;$('modelOverrideDialog').showModal();});},serverInfo(value){serverInfo=value;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
 for(const name of ['about','help']){const dialog=$(name+'Dialog');$(name+'Button').onclick=()=>dialog.showModal();$('close'+name[0].toUpperCase()+name.slice(1)).onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog){const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}});}
 const proDialog=$('proDialog'),password=$('proPassword');
 $('proButton').onclick=()=>{
