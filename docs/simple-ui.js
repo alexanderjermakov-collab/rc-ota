@@ -21,6 +21,8 @@ const strings={
   "saveServerBin": "Save BIN to phone",
   "serverBinLabel": "BIN listed in the server index",
   "readOtaInfo": "Read index and OTA Info TXT",
+  "readInfoOnly": "Read OTA Info TXT only",
+  "infoViewNote": "Direct server view. The app could not read or validate this TXT automatically.",
   "serverModelLabel": "Server catalogue model",
   "serverFirmware": "Server firmware",
   "diagnosticError": "Could not prepare the report. Try Share Diagnostic again.",
@@ -70,7 +72,7 @@ const strings={
   "otaLoading": "Loading OTA Info TXT…",
   "otaBlocked": "The browser could not read the server index or OTA Info TXT. Use the direct links when available, or open a downloaded index/TXT file.",
   "otaInvalid": "Could not open this TXT. Select an OTA Info.txt file up to 64 KB.",
-  "otaLocal": "From the selected TXT file. For display only.",
+  "otaLocal": "From the selected TXT file. Review it before loading the BIN.",
   "about": "About",
   "close": "Close",
   "remote": "Your remote",
@@ -176,6 +178,8 @@ const strings={
   "saveServerBin": "Zapisz BIN w telefonie",
   "serverBinLabel": "BIN wskazany w indeksie serwera",
   "readOtaInfo": "Odczytaj indeks i OTA Info TXT",
+  "readInfoOnly": "Odczytaj tylko OTA Info TXT",
+  "infoViewNote": "Bezpośredni podgląd z serwera. Aplikacja nie mogła automatycznie odczytać ani zweryfikować TXT.",
   "serverModelLabel": "Model katalogu na serwerze",
   "serverFirmware": "Oprogramowanie z serwera",
   "diagnosticError": "Nie udało się przygotować raportu. Spróbuj ponownie udostępnić diagnostykę.",
@@ -357,6 +361,9 @@ function renderPro(){
  $('proOtaStatus').textContent=info?.status?t(info.status):'';
  $('proOtaText').textContent=info?.text||'';
  $('proOtaText').hidden=!info?.text;
+ const view=info?.directView&&!info?.text&&info?.url&&/^https:\/\/firmware\.umc-poland\.com\/[^?#]+\.txt(?:[?#].*)?$/i.test(info.url);
+ $('serverInfoView').hidden=!view;$('serverInfoViewNote').hidden=!view;
+ if(view){if($('serverInfoView').getAttribute('src')!==info.url)$('serverInfoView').setAttribute('src',info.url);}else $('serverInfoView').removeAttribute('src');
  $('proOtaLink').hidden=!info?.url;
  if(info?.url)$('proOtaLink').href=info.url;
  $('proOtaImport').hidden=info?.status!=='otaBlocked'&&info?.status!=='otaInvalid'&&info?.status!=='otaLocal';

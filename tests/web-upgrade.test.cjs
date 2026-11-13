@@ -19,8 +19,34 @@ test('index links remain usable when the following TXT request is blocked',async
  const s=setup({server:true,fetchOverride:async url=>{if(url.endsWith('.txt'))throw new TypeError('Failed to fetch')}});
  await s.node('webPrepareServer').onclick();
  assert.equal(s.requests.length,2);assert.ok(s.requests[0].endsWith('/'));assert.ok(s.requests[1].endsWith('.txt'));
- const info=s.infos.at(-1);assert.equal(info.status,'otaBlocked');assert.ok(info.binaryUrl.endsWith('.bin'));
+ const info=s.infos.at(-1);assert.equal(info.status,'otaBlocked');assert.equal(info.directView,true);assert.ok(info.binaryUrl.endsWith('.bin'));
  assert.ok(info.url.endsWith('.txt'));assert.ok(info.indexText.includes('.bin'));
+ assert.equal(s.node('webDownloadServer').disabled,true);assert.equal(s.writes.length,0);
+});
+
+test('an inaccessible index no longer prevents the previous direct TXT reader in either mode',async()=>{
+ for(const pro of [false,true]){
+  const s=setup({server:true,pro,fetchOverride:async url=>{if(url.endsWith('/'))throw new TypeError('Failed to fetch')}});
+  await s.node('webPrepareServer').onclick();
+  assert.equal(s.infos.at(-1).status,'otaReady');assert.match(s.infos.at(-1).text,/md5sum:/);
+  assert.ok(s.requests[1].endsWith('/ota_info.txt'));assert.equal(s.writes.length,0);
+ }
+});
+
+test('TXT retry uses the advertised HTTPS URL without reloading the index',async()=>{
+ let blocked=true;
+ const s=setup({server:true,fetchOverride:async url=>{if(url.endsWith('.txt')&&blocked)throw new TypeError('Failed to fetch')}});
+ await s.node('webPrepareServer').onclick();blocked=false;
+ await s.node('serverReadInfo').onclick();
+ assert.equal(s.infos.at(-1).status,'otaReady');assert.equal(s.requests.length,3);
+ assert.equal(s.requests[1],s.requests[2]);assert.ok(s.requests[2].startsWith('https://'));assert.equal(s.writes.length,0);
+});
+
+test('received TXT remains visible when validation fails and BIN stays disabled',async()=>{
+ const raw='name: wrong.bin\nversion: 1.0\nmd5sum: invalid';
+ const s=setup({server:true,fetchOverride:async url=>url.endsWith('.txt')?new Response(raw):undefined});
+ await s.node('webPrepareServer').onclick();
+ assert.equal(s.infos.at(-1).text,raw);assert.match(s.infos.at(-1).error,/MD5/);
  assert.equal(s.node('webDownloadServer').disabled,true);assert.equal(s.writes.length,0);
 });
 

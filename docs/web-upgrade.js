@@ -15,6 +15,7 @@ function render(){const c=context(),ready=!!c?.connected&&!c.native&&!!c.metadat
  $('webPrepareLocal').disabled=running||preparing||!ready;
  $('webPrepareServer').disabled=running||preparing;
  $('serverLookup').disabled=running||preparing;
+ $('serverReadInfo').disabled=running||preparing;
  $('serverModel').disabled=running||preparing;
  $('webDownloadServer').disabled=running||preparing||!serverEntry;
  if(serverInfoState)window.RcSimpleUI?.serverInfo?.({...serverInfoState,canLoad:!!serverEntry&&!running&&!preparing,busy:running||preparing});
@@ -67,13 +68,33 @@ async function readIndexedMetadata(indexText,model,indexUrl,epoch,imported=false
  if(epoch!==serverEpoch)return;
  showServer({model:actualModel,indexUrl,indexText,indexImported:imported,url:links.metadataUrl,filename,binaryUrl:links.firmwareUrl,status:'otaLoading'});
  // The direct BIN link is usable as soon as the index is parsed, even if TXT fetch fails.
- const raw=new TextDecoder().decode(await download(links.metadataUrl,65536));
- if(epoch!==serverEpoch)return;
- serverEntry=parseServerInfo(raw,actualModel,links.metadataUrl);
- if(serverEntry.firmwareUrl!==links.firmwareUrl){serverEntry=null;throw Error('The index BIN URL does not match OTA Info TXT.');}
- showServer({...serverInfoState,text:raw,version:serverEntry.info.version,status:'otaReady'});
+ await readMetadata(links.metadataUrl,actualModel,epoch,links.firmwareUrl);
  record('server-info-loaded',{model:actualModel,indexUrl,filename,metadataUrl:links.metadataUrl,indexImported:imported});
- status('Server index and OTA Info TXT loaded. Review the file, then load or save the BIN.','server-info');
+}
+async function readMetadata(url,model,epoch,expectedBinary){
+ showServer({...serverInfoState,model,url,text:'',error:'',directView:false,status:'otaLoading'});
+ record('server-info-request',{url});
+ let raw;try{raw=new TextDecoder().decode(await download(url,65536));}
+ catch(error){if(error instanceof TypeError&&epoch===serverEpoch)showServer({...serverInfoState,directView:true});throw error;}
+ if(epoch!==serverEpoch)return;
+ // Keep the received TXT visible even if metadata validation fails afterwards.
+ showServer({...serverInfoState,text:raw,status:'otaInvalid'});
+ const entry=parseServerInfo(raw,model,url);
+ if(expectedBinary&&entry.firmwareUrl!==expectedBinary)throw Error('The index BIN URL does not match OTA Info TXT.');
+ serverEntry=entry;
+ showServer({...serverInfoState,text:raw,filename:entry.info.name,binaryUrl:entry.firmwareUrl,version:entry.info.version,status:'otaReady'});
+ status('OTA Info TXT loaded. Review it, then load or save the BIN.','server-info');
+}
+async function readInfoOnly(){
+ if(running||preparing)return;
+ const model=$('serverModel').value.trim()||context()?.metadata?.model||'';
+ let base;try{base=catalogueBase(model);}catch(error){showServer({model,status:'otaEnterModel',error:error.message});return;}
+ const previous=serverInfoState?.model===model?serverInfoState:null;
+ const url=previous?.url||base+'ota_info.txt',epoch=++serverEpoch;
+ serverEntry=null;preparing=true;showServer({...previous,model,url,status:'otaLoading'});render();
+ try{await readMetadata(url,model,epoch,previous?.binaryUrl);}
+ catch(error){showServer({...serverInfoState,status:'otaBlocked',error:error.message});record('server-info-error',{url,message:error.message});status('Could not read OTA Info TXT: '+error.message,'server-info-error');}
+ finally{preparing=false;render();}
 }
 async function readServer(){
  if(running||preparing)return;
@@ -85,7 +106,17 @@ async function readServer(){
  try{
   let indexText,indexUrl=base;
   try{indexText=new TextDecoder().decode(await download(indexUrl,65536));}
-  catch(error){if(!/HTTP 403|HTTP 404/.test(error.message))throw error;indexUrl=base+'index.html';indexText=new TextDecoder().decode(await download(indexUrl,65536));}
+  catch(error){
+   if(/HTTP 403|HTTP 404/.test(error.message)){
+    try{indexUrl=base+'index.html';indexText=new TextDecoder().decode(await download(indexUrl,65536));}
+    catch(fallback){record('server-index-error',{url:indexUrl,message:fallback.message});}
+   }else record('server-index-error',{url:indexUrl,message:error.message});
+  }
+  if(indexText===undefined){
+   // Restore the pre-index reader when the listing cannot be fetched.
+   // A directory error must not prevent reading the conventional TXT endpoint.
+   await readMetadata(base+'ota_info.txt',model,epoch);return;
+  }
   await readIndexedMetadata(indexText,model,indexUrl,epoch);
  }catch(error){if(epoch===serverEpoch){serverEntry=null;showServer({...serverInfoState,status:/HTTP 404/.test(error.message)?'otaNotFound':'otaBlocked',error:error.message});status('Could not read the server index or OTA Info TXT: '+error.message,'server-info-error');}}
  finally{preparing=false;render();}
@@ -175,7 +206,7 @@ async function restoreFile(){const api=window.RcFirmwareStore;if(!api)return;con
  try{const saved=await api.load();if(!saved||saved.format!==1||saved.options?.allowModelMismatch)return;const file=await T.prepare(saved.bytes,saved.options);if(file.sha256!==saved.sha256)throw Error('The saved BIN checksum changed.');if(fileRevision!==epoch||retained)return;retained=file;approval=saved.approval===key(file)?saved.approval:'';report.storage='restored';status('Saved BIN restored. Connect the next remote.','retained');render();await bindRetained();}
  catch(error){record('firmware-restore-error',{message:error.message});if(fileRevision===epoch&&!retained)store(api=>api.clear());}
 }
-$('webPrepareServer').onclick=readServer;$('serverLookup').onclick=readServer;$('webDownloadServer').onclick=loadServerBin;$('serverModel').oninput=()=>{serverEpoch++;serverEntry=null;showServer({model:$('serverModel').value,status:'otaEnterModel'});render();};$('webPrepareLocal').onclick=()=>prepare('local');$('webFirmware').onchange=clearFile;$('webConfirm').onchange=confirm;$('webInstall').onclick=install;
+$('webPrepareServer').onclick=readServer;$('serverLookup').onclick=readServer;$('serverReadInfo').onclick=readInfoOnly;$('webDownloadServer').onclick=loadServerBin;$('serverModel').oninput=()=>{serverEpoch++;serverEntry=null;showServer({model:$('serverModel').value,status:'otaEnterModel'});render();};$('webPrepareLocal').onclick=()=>prepare('local');$('webFirmware').onchange=clearFile;$('webConfirm').onchange=confirm;$('webInstall').onclick=install;
 window.addEventListener('rcota-metadata',event=>{if(running)return;const previous=report,c=context(),values=event?.detail;invalidate();
  if(values?.model){const same=pendingCheck&&(c?.device===pendingCheck.device||(c?.device?.id&&c.device.id===pendingCheck.device?.id));if(same){record('manual-readback',{model:values.model,firmware:values.firmware});applyReadback(values);render();return;}if(retained)void bindRetained();else if($('webFirmware').files[0])void prepare('local');}
  else if(['installed','installation-unconfirmed','awaiting-reconnect','model-mismatch','error'].includes(previous.state)){report=previous;status(previous.message,previous.state);}});

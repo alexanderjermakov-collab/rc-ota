@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-function setup({saved='',denied=false}={}){const nodes=new Map(),translated=[],aria=[],storage=new Map([['rcota-language',saved]]);const node=id=>{if(!nodes.has(id))nodes.set(id,{textContent:'',value:'',checked:false,disabled:false,open:false,attributes:{},handlers:{},classList:{toggle(){}},getAttribute(k){return this.attributes[k]},setAttribute(k,v){this.attributes[k]=v},addEventListener(k,v){this.handlers[k]=v},showModal(){this.open=true},close(){this.open=false}});return nodes.get(id)};
+function setup({saved='',denied=false}={}){const nodes=new Map(),translated=[],aria=[],storage=new Map([['rcota-language',saved]]);const node=id=>{if(!nodes.has(id))nodes.set(id,{textContent:'',value:'',checked:false,disabled:false,open:false,attributes:{},handlers:{},classList:{toggle(){}},getAttribute(k){return this.attributes[k]},setAttribute(k,v){this.attributes[k]=v},removeAttribute(k){delete this.attributes[k]},addEventListener(k,v){this.handlers[k]=v},showModal(){this.open=true},close(){this.open=false}});return nodes.get(id)};
  const html=fs.readFileSync('docs/index.html','utf8');let count=0;for(const match of html.matchAll(/<[a-z][^>]*\bdata-i18n(?:-aria)?="[^"]+"[^>]*>/g)){const tag=match[0],id=/\bid="([^"]+)"/.exec(tag)?.[1]||'static'+count++,n=node(id);for(const key of ['data-i18n','data-i18n-aria']){const value=new RegExp(key+'="([^"]+)"').exec(tag)?.[1];if(value)n.attributes[key]=value;}if(n.attributes['data-i18n'])translated.push(n);if(n.attributes['data-i18n-aria'])aria.push(n);}
  const document={getElementById:node,documentElement:{lang:'en'},querySelectorAll:selector=>selector==='[data-i18n]'?translated:aria};
  const window={RcWebRemote:{context:()=>({connected:false})}};vm.runInNewContext(fs.readFileSync('docs/simple-ui.js','utf8'),{window,document,localStorage:{getItem:k=>{if(denied)throw Error('denied');return storage.get(k)},setItem:(k,v)=>{if(denied)throw Error('denied');storage.set(k,v)}}});return {node,document,window,storage};}
@@ -123,4 +123,14 @@ test('Pro retains already read identifiers when the GATT link drops',()=>{
  assert.equal(s.node('proSoftware').textContent,'V1');
  assert.equal(s.node('proReadNote').hidden,false);
  assert.equal(s.node('connect').textContent,'Reconnect');
+});
+
+
+test('blocked TXT gets a sandboxed HTTPS server view; receiving parsed text removes it',()=>{
+ const s=setup(),url='https://firmware.umc-poland.com/M/ota_info.txt';
+ s.window.RcSimpleUI.serverInfo({model:'M',url,directView:true,status:'otaBlocked'});
+ assert.equal(s.node('serverInfoView').hidden,false);assert.equal(s.node('serverInfoView').getAttribute('src'),url);
+ s.window.RcSimpleUI.serverInfo({model:'M',url,directView:true,text:'name: firmware.bin',status:'otaReady'});
+ assert.equal(s.node('serverInfoView').hidden,true);assert.equal(s.node('serverInfoView').getAttribute('src'),undefined);
+ const html=fs.readFileSync('docs/index.html','utf8');assert.match(html,/<iframe[^>]+sandbox=""[^>]+referrerpolicy="no-referrer"/);
 });
