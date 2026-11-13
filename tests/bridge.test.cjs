@@ -29,7 +29,7 @@ test('known OTA UUID without a live read cannot report a verified connection',as
 
  test('permitted SHARP remote is recovered without any stored ID',async()=>{const s=setup(),remote=savedFixture();let calls=0;s.context.navigator.bluetooth={getDevices:async()=>[remote],requestDevice:async()=>{calls++;throw Error('unexpected chooser')}};await s.el('connect').onclick();assert.equal(calls,0);assert.equal(s.el('connection').textContent,'GATT verified');assert.equal(s.el('model').textContent,'V1.2.3')});
  test('stale stored ID recovers a single permitted SHARP remote',async()=>{const s=setup({savedId:'stale'});s.context.navigator.bluetooth={getDevices:async()=>[savedFixture()],requestDevice:async()=>{throw Error('unexpected chooser')}};await s.el('connect').onclick();assert.equal(s.el('connection').textContent,'GATT verified')});
- test('automatic page restore works without local storage',async()=>{const s=setup();s.context.location.origin='https://alexanderjermakov-collab.github.io';s.context.navigator.bluetooth={getDevices:async()=>[savedFixture()],requestDevice:async()=>{throw Error('unexpected chooser')}};await vm.runInNewContext('restore()',s.context);assert.equal(s.el('connection').textContent,'GATT verified')});
+ test('page restore recovers permission without connecting until the user presses Connect',async()=>{const s=setup(),remote=savedFixture();let connects=0;const connect=remote.gatt.connect;remote.gatt.connect=async()=>{connects++;return connect()};s.context.location.origin='https://alexanderjermakov-collab.github.io';s.context.navigator.bluetooth={getDevices:async()=>[remote],requestDevice:async()=>{throw Error('unexpected chooser')}};await vm.runInNewContext('restore()',s.context);assert.equal(connects,0);assert.equal(s.el('connection').textContent,'Disconnected');assert.match(s.el('status').textContent,/press Connect/);await s.el('connect').onclick();assert.equal(connects,1);assert.equal(s.el('connection').textContent,'GATT verified')});
  test('ambiguous permitted remotes are not automatically connected',async()=>{const s=setup();s.context.location.origin='https://alexanderjermakov-collab.github.io';s.context.navigator.bluetooth={getDevices:async()=>[savedFixture(),{...savedFixture(),id:'second'}],requestDevice:async()=>{throw Error('unexpected chooser')}};await vm.runInNewContext('restore()',s.context);assert.equal(s.el('connection').textContent,'Disconnected');assert.match(s.el('status').textContent,/Several permitted/)});
  test('unsupported restoration explains browser permission limitation',async()=>{const s=setup();s.context.location.origin='https://alexanderjermakov-collab.github.io';s.context.navigator.bluetooth={requestDevice:async()=>{throw Error('unexpected chooser')}};await vm.runInNewContext('restore()',s.context);assert.match(s.el('status').textContent,/does not expose/)});
  test('selected permission is remembered even when live read fails',async()=>{const options={},s=setup(options),remote=savedFixture();remote.gatt.connect=async()=>{throw Error('sleeping')};s.context.navigator.bluetooth={requestDevice:async()=>remote};await s.el('connect').onclick();assert.equal(options.savedId,'remembered-remote');assert.equal(s.el('connection').textContent,'Disconnected')});
@@ -61,3 +61,31 @@ test('manufacturer and hardware revision are read and rendered',async()=>{
 });
 
 test('local bridge snapshot waits until OTA client scripts can install listeners',()=>{const s=setup();let starts=0,ready;s.context.document.readyState='loading';s.context.document.addEventListener=(event,fn)=>{if(event==='DOMContentLoaded')ready=fn};s.context.window.RcLocalBridge={port:{},start(){starts++}};vm.runInNewContext(fs.readFileSync('docs/app.js','utf8'),{...s.context,window:s.context.window});assert.equal(starts,0);assert.equal(typeof ready,'function');ready();assert.equal(starts,1)});
+
+test('Android disconnect during connection keeps recovery diagnostics and restores Connect without automatic retries',async()=>{
+ const s=setup(),remote=savedFixture();let lost,reject,connects=0;
+ s.context.navigator.userAgent='Android Chrome';
+ remote.addEventListener=(name,fn)=>{lost=fn};
+ remote.gatt.connect=()=>{connects++;return new Promise((_,fail)=>{reject=fail})};
+ s.context.navigator.bluetooth={requestDevice:async()=>remote};
+ const attempt=s.el('connect').onclick();await new Promise(setImmediate);
+ remote.gatt.connected=false;lost();reject(Object.assign(Error('Authentication failed'),{name:'NetworkError'}));
+ await attempt;
+ const state=s.context.window.RcWebRemote.context();
+ assert.equal(state.connected,false);assert.equal(state.busy,false);
+ assert.equal(state.connectionError.pairingRecovery,true);
+ assert.equal(state.connectionError.name,'NetworkError');
+ assert.equal(s.el('connect').disabled,false);assert.equal(connects,1);
+ assert.match(s.el('status').textContent,/before model and firmware verification/);
+ assert.equal(s.el('model').textContent,'—');
+});
+
+test('Android connection and read deadlines allow time for system pairing consent',async()=>{
+ const s=setup(),deadlines=[],remote=savedFixture();
+ s.context.navigator.userAgent='Android Chrome';
+ s.context.setTimeout=(fn,ms)=>{deadlines.push(ms);return setTimeout(fn,ms)};
+ s.context.navigator.bluetooth={requestDevice:async()=>remote};
+ await s.el('connect').onclick();
+ assert.ok(deadlines.includes(45000));assert.ok(deadlines.includes(30000));
+ assert.equal(s.el('connection').textContent,'GATT verified');
+});

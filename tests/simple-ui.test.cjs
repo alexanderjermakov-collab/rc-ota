@@ -29,6 +29,16 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
 });
 
 test('the initial screen hides the empty pairing hint',()=>{const s=setup();assert.equal(s.node('screenMessage').hidden,true);assert.equal(s.node('screenMessage').textContent,'');});
+
+test('web connection recovery is translated and the public page does not require APK downloads',()=>{
+ const s=setup();
+ s.window.RcSimpleUI.remote({connected:false,busy:false,metadata:{},connectionError:{name:'NetworkError',pairingRecovery:true}});
+ assert.match(s.node('screenMessage').textContent,/Android closed the Bluetooth connection/);
+ s.node('language').onchange({target:{value:'pl'}});
+ assert.match(s.node('screenMessage').textContent,/Android zamknął/);
+ assert.equal(s.node('proBridgeLinks').hidden,true);
+ assert.doesNotMatch(fs.readFileSync('docs/index.html','utf8'),/href="[^"]+\.apk"/);
+});
 test('Pro retains already read identifiers when the GATT link drops',()=>{
  const s=setup();
  s.node('proButton').onclick();

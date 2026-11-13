@@ -6,9 +6,9 @@ const strings={
  "en": {
   "language": "Language",
   "help": "Help",
-  "pairFallback": "If Easy Pairing with the MIC button fails, hold Back + Home together for 3 seconds until the red LED flashes. Pair in Android Bluetooth, then press Connect in the app.",
+  "pairFallback": "For remotes whose instructions specify Back + Home, hold them together for 3 seconds until the red LED flashes. Otherwise use the pairing procedure for your model. Then press Connect on this page.",
   "pairReset": "If pressing MIC does not put the remote into pairing mode, perform a factory reset following the instructions for your remote model, then try pairing again.",
-  "pairMissing": "If the remote is in pairing mode but missing from the app’s device list, remove that remote from the paired devices in your phone’s or computer’s Bluetooth settings. Put the remote into pairing mode again and press Connect.",
+  "pairMissing": "If Android pairing succeeds but this page cannot connect, remove only this remote from Android Bluetooth settings. Activate its pairing mode, press Connect on this page and confirm the Android pairing request. Do not re-enter pairing mode between reading and updating.",
   "password": "Password",
   "wrongPassword": "Incorrect password.",
   "unlockPro": "Unlock Pro",
@@ -95,10 +95,10 @@ const strings={
   "pairingTitle": "Pair the remote with the phone",
   "fileTitle": "Select the firmware",
   "upgradeTitle": "Upgrade the remote",
-  "pair1": "Turn on Bluetooth on the phone and open Android Bluetooth settings.",
-  "pair2": "Press the microphone (MIC) button on the remote to start Easy Pairing.",
-  "pair3": "Select SHARP RCU or SHARP SOLAR RCU in Android and confirm Pair. If it is already paired, keep the existing pairing.",
-  "pair4": "Return to this page in Chrome. Press Connect, select that remote and allow access. Wait for its exact model, version and battery to appear. Selecting a device alone is not a completed connection.",
+  "pair1": "Turn on Bluetooth and open this HTTPS page directly in Chrome on your phone. No Android app is required.",
+  "pair2": "Wake the remote. If it has not been paired, activate pairing using the instructions for your remote model.",
+  "pair3": "Press Connect on this page, choose SHARP RCU or SHARP SOLAR RCU and allow access. Confirm any Android Pair request, including a pairing notification.",
+  "pair4": "Wait for the exact model, firmware and battery. Keep this page open: firmware preparation and transfer use the same browser connection. An existing Android pairing can be kept if it works.",
   "file1": "Press From phone and choose the BIN for the exact displayed model. AN2303-2UM-001 and AN2303B-2UM-001 require different files.",
   "file2": "Or press From server. If Chrome blocks the server download, use the displayed download link, save the BIN and select it with From phone. The AN2303 manufacturer filename is accepted unchanged only when its catalogue checksum matches.",
   "file3": "Wait until the file is ready. Confirm it once. The BIN and confirmation are kept for the next units of the same model.",
@@ -110,14 +110,15 @@ const strings={
   "awaitingReconnect": "Transfer sent. No automatic reconnect. Wake/pair the remote, then press Reconnect or Read to check its version.",
   "unconfirmedRead": "Remote version read: {version}. Same-version or unknown-version installation cannot be verified by version alone.",
   "modelMismatch": "Remote: {actual}. Saved BIN: {expected}. Choose a file for {actual}.",
-  "permissionError": "Allow this remote in Chrome and confirm its pairing in Android Bluetooth settings."
+  "webPairingRecovery": "Android closed the Bluetooth connection before verification. Confirm any pairing notification. If it repeats, remove only this remote in Android Bluetooth settings, enter its pairing mode, then select it with Connect on this page. See Help.",
+  "permissionError": "Allow this remote in Chrome and confirm any Android pairing request or notification."
  },
  "pl": {
   "language": "Język",
   "help": "Pomoc",
-  "pairFallback": "Jeśli Easy Pairing przyciskiem MIC nie działa, przytrzymaj jednocześnie Back + Home przez 3 sekundy, aż czerwona dioda zacznie migać. Sparuj pilot w ustawieniach Bluetooth Androida, a następnie naciśnij Połącz w aplikacji.",
+  "pairFallback": "Dla pilotów, których instrukcja wskazuje Back + Home, przytrzymaj je jednocześnie przez 3 sekundy, aż czerwona dioda zacznie migać. Dla innych użyj procedury parowania danego modelu. Następnie naciśnij Połącz na tej stronie.",
   "pairReset": "Jeśli naciśnięcie MIC nie włącza trybu parowania, przywróć ustawienia fabryczne zgodnie z instrukcją danego modelu pilota i spróbuj ponownie.",
-  "pairMissing": "Jeśli pilot jest w trybie parowania, ale nie ma go na liście w aplikacji, usuń ten pilot z listy sparowanych urządzeń w ustawieniach Bluetooth telefonu lub komputera. Ponownie włącz tryb parowania i naciśnij Połącz.",
+  "pairMissing": "Jeśli parowanie w Androidzie działa, ale strona nie może się połączyć, usuń tylko ten pilot w ustawieniach Bluetooth Androida. Włącz parowanie pilota, naciśnij Połącz na tej stronie i potwierdź żądanie parowania Androida. Nie włączaj ponownie parowania między odczytem a aktualizacją.",
   "password": "Hasło",
   "wrongPassword": "Nieprawidłowe hasło.",
   "unlockPro": "Odblokuj Pro",
@@ -204,10 +205,10 @@ const strings={
   "pairingTitle": "Sparuj pilot z telefonem",
   "fileTitle": "Wybierz oprogramowanie",
   "upgradeTitle": "Zaktualizuj pilot",
-  "pair1": "Włącz Bluetooth w telefonie i otwórz ustawienia Bluetooth Androida.",
-  "pair2": "Naciśnij przycisk mikrofonu (MIC) na pilocie, aby rozpocząć Easy Pairing.",
-  "pair3": "Wybierz SHARP RCU lub SHARP SOLAR RCU w Androidzie i potwierdź Paruj. Jeśli pilot jest już sparowany, zachowaj istniejące parowanie.",
-  "pair4": "Wróć do tej strony w Chrome. Naciśnij Połącz, wybierz ten pilot i zezwól na dostęp. Poczekaj na dokładny model, wersję i baterię. Sam wybór urządzenia nie oznacza zakończenia połączenia.",
+  "pair1": "Włącz Bluetooth i otwórz tę stronę HTTPS bezpośrednio w Chrome na telefonie. Aplikacja Android nie jest wymagana.",
+  "pair2": "Obudź pilot. Jeśli nie jest sparowany, włącz parowanie zgodnie z instrukcją danego modelu pilota.",
+  "pair3": "Naciśnij Połącz na tej stronie, wybierz SHARP RCU lub SHARP SOLAR RCU i zezwól na dostęp. Potwierdź żądanie Paruj w Androidzie, także w powiadomieniu.",
+  "pair4": "Poczekaj na dokładny model, wersję i baterię. Pozostaw stronę otwartą: przygotowanie i przesyłanie oprogramowania używa tego samego połączenia przeglądarki. Zachowaj istniejące parowanie Androida, jeśli działa.",
   "file1": "Naciśnij Z telefonu i wybierz BIN dla dokładnego modelu na ekranie. AN2303-2UM-001 i AN2303B-2UM-001 wymagają różnych plików.",
   "file2": "Lub naciśnij Z serwera. Jeśli Chrome blokuje pobieranie, użyj widocznego łącza, zapisz BIN i wybierz go przyciskiem Z telefonu. Oryginalna nazwa pliku producenta AN2303 jest akceptowana tylko przy zgodnej sumie kontrolnej katalogu.",
   "file3": "Poczekaj na gotowość pliku i zatwierdź go raz. BIN i zgoda zostają zachowane dla kolejnych pilotów tego samego modelu.",
@@ -219,7 +220,8 @@ const strings={
   "awaitingReconnect": "Dane wysłane. Brak automatycznych prób łączenia. Wybudź lub sparuj pilot i naciśnij Połącz ponownie lub Odczytaj, aby sprawdzić wersję.",
   "unconfirmedRead": "Odczytana wersja: {version}. Instalacji tej samej lub nieznanej wersji nie można potwierdzić samym odczytem.",
   "modelMismatch": "Pilot: {actual}. Zapisany BIN: {expected}. Wybierz plik dla {actual}.",
-  "permissionError": "Zezwól na dostęp do pilota w Chrome i potwierdź parowanie w ustawieniach Bluetooth Androida."
+  "webPairingRecovery": "Android zamknął połączenie Bluetooth przed weryfikacją. Potwierdź powiadomienie o parowaniu. Jeśli błąd się powtarza, usuń tylko ten pilot w ustawieniach Bluetooth Androida, włącz jego parowanie i wybierz go przyciskiem Połącz na tej stronie. Zobacz Pomoc.",
+  "permissionError": "Zezwól na dostęp do pilota w Chrome i potwierdź żądanie lub powiadomienie o parowaniu w Androidzie."
  }
 };
 let language='en';try{if(localStorage.getItem('rcota-language')==='pl')language='pl';}catch{}
@@ -238,7 +240,7 @@ function renderPro(){
  const id=key=>Number.isInteger(field(key))?'0x'+field(key).toString(16).toUpperCase().padStart(4,'0')+' ('+field(key)+')':'—';
  $('proButton').setAttribute('aria-pressed',String(pro));
  $('proRemote').hidden=!pro;
- $('proBridgeLinks').hidden=!pro||!!remote.native;
+ $('proBridgeLinks').hidden=true;
  $('bridgeUpgradeLink').hidden=!remote.native;
  $('nativeForget').hidden=!remote.native||!remote.hasDevice||!!remote.busy||!!remote.locked;
  $('disconnect').hidden=!!remote.native&&!$('nativeForget').hidden;
@@ -267,7 +269,7 @@ function render(){
  const states={retained:()=>t('retained'),preparing:()=>t('preparing'),ready:()=>t(file?.batchApproved?'batchReady':'ready'),transferring:()=>t('transferring',{progress:upgrade.progress||0}),verifying:()=>t('verifying'),installed:()=>t('installed',{version:upgrade.actualFirmware||file?.version||'—'}),'installation-unconfirmed':()=>upgrade.actualFirmware?t('unconfirmedRead',{version:upgrade.actualFirmware}):t('unconfirmed'),'awaiting-reconnect':()=>t('awaitingReconnect'),'model-mismatch':()=>t('modelMismatch',{actual:upgrade.detectedModel||remote.metadata?.model||'—',expected:upgrade.expectedModel||file?.model||'—'}),error:()=>errorMessage(upgrade.message)};
  if(states[upgrade.state])message=states[upgrade.state]();else if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');else if(/failed|unavailable|cancelled|timed out/i.test(remote.message||''))message=errorMessage(remote.message);
  if(['retained','idle'].includes(upgrade.state)){if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');}
- if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t(remote.readAt?'historical':'retry');
+ if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.pairingRecovery)message=t('webPairingRecovery');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t(remote.readAt?'historical':'retry');
  if(remote.native)message=remote.message||message;
  if(/partially refreshed/i.test(remote.message||'')&&!blocked)message=t('partialRead');
  $('screenMessage').hidden=!message;$('screenMessage').textContent=message;$('screenMessage').classList.toggle('error',['error','model-mismatch'].includes(upgrade.state));$('screenMessage').classList.toggle('success',upgrade.state==='installed');$('webInstall').textContent=t(upgrade.state==='transferring'?'updating':'update');
