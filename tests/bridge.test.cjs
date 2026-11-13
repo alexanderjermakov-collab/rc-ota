@@ -89,3 +89,13 @@ test('Android connection and read deadlines allow time for system pairing consen
  assert.ok(deadlines.includes(45000));assert.ok(deadlines.includes(30000));
  assert.equal(s.el('connection').textContent,'GATT verified');
 });
+
+test('post-OTA rename readback requires the same device and an explicit expected model transition',async()=>{
+ const s=setup(),remote=savedFixture();s.context.navigator.bluetooth={requestDevice:async()=>remote};
+ await s.el('connect').onclick();const previous=s.el('model').textContent;
+ const actual={model:'AN4512E-20UM021-008',firmware:'V0.0.2',level:80};
+ assert.equal(s.context.window.RcWebRemote.resumeAfterUpgrade(remote,actual),false);
+ assert.equal(s.context.window.RcWebRemote.resumeAfterUpgrade({...remote},actual,{expectedModel:previous,renamedModel:actual.model}),false);
+ assert.equal(s.context.window.RcWebRemote.resumeAfterUpgrade(remote,actual,{expectedModel:previous,renamedModel:actual.model}),true);
+ assert.equal(s.el('model').textContent,'AN4512E-20UM021-008');
+});

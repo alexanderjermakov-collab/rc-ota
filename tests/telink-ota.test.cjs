@@ -14,3 +14,23 @@ test('mutated file and unsupported characteristic never send start',async()=>{co
 test('failed write aborts the transfer without sending subsequent frames',async()=>{const p=await local(),io=mock();let count=0;io.characteristic=async()=>({properties:{read:true,writeWithoutResponse:true},writeValueWithoutResponse:async()=>{if(++count===3)throw Error('link lost')},readValue:async()=>{}});await assert.rejects(T.transfer(p,io),error=>error.writesMayHaveStarted&&/link lost/.test(error.message));assert.equal(count,3)});
 test('legacy AN2303 FWV revision uses the OEM counter without breaking normal dotted version comparison',()=>{assert.equal(T.compare('0.1.6','FWV0.03'),1);assert.equal(T.compare('FWV0.03','0.1.6'),-1);assert.equal(T.compare('FWV0.03','V0.0.3'),0);assert.equal(T.compare('V0.1.0','V0.0.15'),1)});
 test('manufacturer AN2303 filename is mapped only to its exact catalogue model and requires its MD5',async()=>{const entry=T.KNOWN_FIRMWARE['AN2303-2UM-001'];assert.equal(T.localVersion(entry.filename,'AN2303-2UM-001'),'0.1.6');assert.throws(()=>T.localVersion(entry.filename,'AN2303B-2UM-001'),/exact model/);await assert.rejects(T.prepare(new Uint8Array(100),{source:'local',model:'AN2303-2UM-001',filename:entry.filename,installed:'FWV0.03'}),/MD5/)});
+
+test('engineering rename permits a different local BIN name while binding transfer to the connected model',async()=>{
+ const options={source:'local',model:'AN4512D-2UM-019',installed:'V0.0.1',filename:'AN4512E-20UM021-008_V0.0.2.bin'};
+ await assert.rejects(T.prepare(new Uint8Array(32),options),/exact model/);
+ const file=await T.prepare(new Uint8Array(32),{...options,allowModelMismatch:true});
+ assert.equal(file.model,'AN4512D-2UM-019');assert.equal(file.fileModel,'AN4512E-20UM021-008');
+ assert.equal(file.version,'0.0.2');assert.equal(file.modelOverride,true);
+ const changed=mock({name:'SHARP RCU',model:'AN4512E-20UM021-008',firmware:'V0.0.1',level:90});
+ await assert.rejects(T.transfer(file,changed),/model or installed version changed/);assert.equal(changed.writes.length,0);
+});
+
+test('engineering override accepts an unknown BIN filename but preserves format, size and battery checks',async()=>{
+ const options={source:'local',model,installed:firmware,allowModelMismatch:true};
+ const file=await T.prepare(new Uint8Array(32),{...options,filename:'engineering-image.bin'});
+ assert.equal(file.version,'');assert.equal(file.fileModel,'');assert.equal(file.modelOverride,true);
+ await assert.rejects(T.prepare(new Uint8Array(32),{...options,filename:'image.hex'}),/BIN firmware/);
+ await assert.rejects(T.prepare(new Uint8Array(10),{...options,filename:'image.bin'}),/between 32/);
+ const low=mock({name:'SHARP RCU',model,firmware,level:29});
+ await assert.rejects(T.transfer(file,low),/30%/);assert.equal(low.writes.length,0);
+});

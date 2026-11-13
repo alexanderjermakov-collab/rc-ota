@@ -4,6 +4,19 @@ const $=id=>document.getElementById(id);
 if(!$('aboutDialog'))return;
 const strings={
  "en": {
+  "proOverride": "Allow a different model name (local BIN)",
+  "proOverrideHint": "For engineering use after a model rename. Confirm hardware compatibility before installing.",
+  "overrideTitle": "Different model name",
+  "overrideWarning": "This BIN filename does not match the connected model. An incompatible image can leave the remote unusable. Continue only if you have verified hardware and firmware compatibility.",
+  "binModel": "Model in BIN filename",
+  "selectedBin": "Selected BIN",
+  "cancelOverride": "Cancel",
+  "approveOverride": "Yes, install this BIN",
+  "unknownFileModel": "Not identified from the filename",
+  "confirmProFile": "I selected this engineering BIN. Ask me to confirm the model override before installation.",
+  "localSelected": "BIN selected. Connect and read the remote to prepare it.",
+  "overrideReady": "Engineering BIN ready. Update remote will ask you to confirm the different model name.",
+
   "language": "Language",
   "help": "Help",
   "pairFallback": "For remotes whose instructions specify Back + Home, hold them together for 3 seconds until the red LED flashes. Otherwise use the pairing procedure for your model. Then press Connect on this page.",
@@ -114,6 +127,19 @@ const strings={
   "permissionError": "Allow this remote in Chrome and confirm any Android pairing request or notification."
  },
  "pl": {
+  "proOverride": "Zezwól na inną nazwę modelu (lokalny BIN)",
+  "proOverrideHint": "Do prac inżynierskich po zmianie nazwy modelu. Przed instalacją sprawdź zgodność sprzętu.",
+  "overrideTitle": "Inna nazwa modelu",
+  "overrideWarning": "Nazwa tego pliku BIN nie odpowiada modelowi podłączonego pilota. Niezgodny obraz może uniemożliwić działanie pilota. Kontynuuj tylko po sprawdzeniu zgodności sprzętu i oprogramowania.",
+  "binModel": "Model w nazwie pliku BIN",
+  "selectedBin": "Wybrany BIN",
+  "cancelOverride": "Anuluj",
+  "approveOverride": "Tak, zainstaluj ten BIN",
+  "unknownFileModel": "Nie rozpoznano w nazwie pliku",
+  "confirmProFile": "Wybrałem ten inżynierski BIN. Poproś o potwierdzenie zmiany modelu przed instalacją.",
+  "localSelected": "Wybrano BIN. Połącz i odczytaj pilot, aby przygotować plik.",
+  "overrideReady": "Inżynierski BIN gotowy. Aktualizacja wymaga potwierdzenia innej nazwy modelu.",
+
   "language": "Język",
   "help": "Pomoc",
   "pairFallback": "Dla pilotów, których instrukcja wskazuje Back + Home, przytrzymaj je jednocześnie przez 3 sekundy, aż czerwona dioda zacznie migać. Dla innych użyj procedury parowania danego modelu. Następnie naciśnij Połącz na tej stronie.",
@@ -240,6 +266,8 @@ function renderPro(){
  const id=key=>Number.isInteger(field(key))?'0x'+field(key).toString(16).toUpperCase().padStart(4,'0')+' ('+field(key)+')':'—';
  $('proButton').setAttribute('aria-pressed',String(pro));
  $('proRemote').hidden=!pro;
+ $('proFirmware').hidden=!pro;
+ $('proButton').disabled=!!remote.locked;
  $('proBridgeLinks').hidden=true;
  $('bridgeUpgradeLink').hidden=!remote.native;
  $('nativeForget').hidden=!remote.native||!remote.hasDevice||!!remote.busy||!!remote.locked;
@@ -263,10 +291,11 @@ function render(){
  renderPro();
  const connected=!!remote.connected,blocked=!!remote.busy||!!remote.locked;const download=$('webSolarDownload').querySelector?.('a');if(download)download.textContent=t('downloadBin',{version:download.getAttribute('data-version')||'0.1.0'});
  $('connectionState').textContent=t(connected?'connected':remote.busy?'connecting':'disconnected');$('connectionState').classList.toggle('connected',connected);$('readRemote').disabled=!connected||blocked;$('connect').textContent=t(connected||remote.nextSelection?'next':upgrade.state==='awaiting-reconnect'||remote.hasDevice&&remote.readAt?'reconnect':'connect');$('connect').disabled=blocked;$('disconnect').disabled=blocked||!(connected||remote.hasDevice);
- $('selectedFilename').textContent=file?file.filename:t('noFile');
+ $('selectedFilename').textContent=file?.filename||upgrade.chosenFilename||t('noFile');
+ $('webConfirmLabel').textContent=t(file?.modelOverride?'confirmProFile':'confirm');
  $('selectedVersion').textContent=file?(file.version?t('version')+' '+file.version:t('localVersion'))+' · '+t(file.source==='local'?'sourcePhone':'sourceServer')+(file.batchApproved?' · '+t('approved'):''):t('chooseSource');
  let message=t(remote.busy?'reading':connected?'choose':remote.readAt?'historical':'start');
- const states={retained:()=>t('retained'),preparing:()=>t('preparing'),ready:()=>t(file?.batchApproved?'batchReady':'ready'),transferring:()=>t('transferring',{progress:upgrade.progress||0}),verifying:()=>t('verifying'),installed:()=>t('installed',{version:upgrade.actualFirmware||file?.version||'—'}),'installation-unconfirmed':()=>upgrade.actualFirmware?t('unconfirmedRead',{version:upgrade.actualFirmware}):t('unconfirmed'),'awaiting-reconnect':()=>t('awaitingReconnect'),'model-mismatch':()=>t('modelMismatch',{actual:upgrade.detectedModel||remote.metadata?.model||'—',expected:upgrade.expectedModel||file?.model||'—'}),error:()=>errorMessage(upgrade.message)};
+ const states={'local-selected':()=>t('localSelected'),retained:()=>t('retained'),preparing:()=>t('preparing'),ready:()=>t(file?.modelOverride?'overrideReady':file?.batchApproved?'batchReady':'ready'),transferring:()=>t('transferring',{progress:upgrade.progress||0}),verifying:()=>t('verifying'),installed:()=>t('installed',{version:upgrade.actualFirmware||file?.version||'—'}),'installation-unconfirmed':()=>upgrade.actualFirmware?t('unconfirmedRead',{version:upgrade.actualFirmware}):t('unconfirmed'),'awaiting-reconnect':()=>t('awaitingReconnect'),'model-mismatch':()=>t('modelMismatch',{actual:upgrade.detectedModel||remote.metadata?.model||'—',expected:upgrade.expectedModel||file?.model||'—'}),error:()=>errorMessage(upgrade.message)};
  if(states[upgrade.state])message=states[upgrade.state]();else if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');else if(/failed|unavailable|cancelled|timed out/i.test(remote.message||''))message=errorMessage(remote.message);
  if(['retained','idle'].includes(upgrade.state)){if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');}
  if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.pairingRecovery)message=t('webPairingRecovery');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t(remote.readAt?'historical':'retry');
@@ -278,11 +307,11 @@ function errorMessage(message=''){
  for(const [pattern,key] of [[/CORS|could not read the manufacturer|Failed to fetch/i,'cors'],[/30%|battery/i,'lowBattery'],[/exact model|filename|different.*model|model.*changed/i,'wrongModel'],[/newer|No upgrade/i,'noNewer'],[/MD5|file changed|checksum/i,'badFile'],[/cancelled/i,'cancelled'],[/unavailable.*browser|Bluetooth is unavailable/i,'browser'],[/disconnected|timed out|Connection failed|link lost/i,'retry']])if(pattern.test(message))return t(key);
  return t('error');
 }
-window.RcSimpleUI={serverInfo(value){serverInfo=value;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
+window.RcSimpleUI={isPro:()=>pro,confirmModelOverride(selected,model){if(!pro||!$('proModelOverride').checked)return Promise.resolve(false);$('overrideRemoteModel').textContent=model;$('overrideFileModel').textContent=selected.fileModel||t('unknownFileModel');$('overrideFilename').textContent=selected.filename;return new Promise(resolve=>{pendingOverride=resolve;$('modelOverrideDialog').showModal();});},serverInfo(value){serverInfo=value;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
 for(const name of ['about','help']){const dialog=$(name+'Dialog');$(name+'Button').onclick=()=>dialog.showModal();$('close'+name[0].toUpperCase()+name.slice(1)).onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog){const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}});}
 const proDialog=$('proDialog'),password=$('proPassword');
 $('proButton').onclick=()=>{
- if(pro){pro=false;renderPro();return;}
+ if(pro){pro=false;$('proModelOverride').checked=false;finishModelOverride(false);window.RcWebUpgrade?.modeChanged?.();renderPro();return;}
  $('proError').hidden=true;
  proDialog.showModal();
 };
@@ -293,6 +322,7 @@ $('proForm').onsubmit=event=>{
  if(password.value!=='1111'){$('proError').hidden=false;return;}
  pro=true;
  proDialog.close();
+ window.RcWebUpgrade?.modeChanged?.();
  renderPro();
 };
 $('proOtaFile').onchange=async event=>{
@@ -313,6 +343,13 @@ $('language').onchange=event=>setLanguage(event.target.value);
 $('readRemote').onclick=()=>window.RcWebRemote?.read();
 $('connect').onclick=()=>window.RcWebRemote?.context()?.connected?window.RcWebRemote.next():window.RcWebRemote?.connect();
 $('disconnect').onclick=()=>window.RcWebRemote?.forget();
-$('webFirmware').addEventListener('change',()=>{if($('webFirmware').files[0])$('webPrepareLocal').onclick();});
+$('webChooseFile').onclick=()=>{if(!$('webChooseFile').disabled)$('webFirmware').click();};
+$('webFirmware').addEventListener('change',()=>{if($('webFirmware').files[0])window.RcWebUpgrade?.selectLocalFile();});
+$('proModelOverride').onchange=()=>window.RcWebUpgrade?.modeChanged?.();
+let pendingOverride=null;
+function finishModelOverride(accepted){const resolve=pendingOverride;pendingOverride=null;if(resolve)resolve(accepted&&pro&&$('proModelOverride').checked);$('modelOverrideDialog').close();}
+$('cancelModelOverride').onclick=()=>finishModelOverride(false);
+$('approveModelOverride').onclick=()=>finishModelOverride(true);
+$('modelOverrideDialog').addEventListener('close',()=>{if(pendingOverride)finishModelOverride(false);});
 setLanguage(language);
 })();

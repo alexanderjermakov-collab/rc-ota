@@ -20,3 +20,5 @@ dialog ul{padding-left:20px;font-size:13px;line-height:1.55}
 #pairedPanel,#proBridgeLinks,#bridgeUpgradeLink{margin-top:12px}
 #proBridgeLinks a{display:block;margin-top:6px}
 #pairedRemote{max-width:70%;margin-right:6px}
+
+.pro-firmware{margin-top:12px;padding:12px;border:1px solid #e5bb75;border-radius:12px;background:#fff8eb}.pro-firmware p{font-size:12px;color:#72541e}.pro-firmware .consent{margin-bottom:6px}#modelOverrideDialog .file-actions{margin-top:18px}#modelOverrideDialog dd{font-size:14px}

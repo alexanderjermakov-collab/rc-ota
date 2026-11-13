@@ -30,6 +30,38 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
 
 test('the initial screen hides the empty pairing hint',()=>{const s=setup();assert.equal(s.node('screenMessage').hidden,true);assert.equal(s.node('screenMessage').textContent,'');});
 
+test('From phone opens the native picker synchronously, including before remote connection',()=>{
+ const s=setup();let opens=0;s.node('webFirmware').click=()=>{opens++};
+ s.node('webChooseFile').onclick();assert.equal(opens,1);
+ s.node('webChooseFile').disabled=true;s.node('webChooseFile').onclick();assert.equal(opens,1);
+ s.window.RcSimpleUI.upgrade({state:'error',message:'Choose a BIN named for this exact model',chosenFilename:'AN4512E-20UM021-008_V0.0.2.bin'});
+ assert.equal(s.node('selectedFilename').textContent,'AN4512E-20UM021-008_V0.0.2.bin');
+});
+
+test('model override is visible only in unlocked Pro and its warning requires an explicit affirmative choice',async()=>{
+ const s=setup(),file={filename:'AN4512E-20UM021-008_V0.0.2.bin',fileModel:'AN4512E-20UM021-008'};
+ assert.equal(s.window.RcSimpleUI.isPro(),false);assert.equal(s.node('proFirmware').hidden,true);
+ assert.equal(await s.window.RcSimpleUI.confirmModelOverride(file,'AN4512D-2UM-019'),false);
+ s.node('proButton').onclick();s.node('proPassword').value='1111';s.node('proForm').onsubmit({preventDefault(){}});
+ assert.equal(s.node('proFirmware').hidden,false);s.node('proModelOverride').checked=true;
+ let pending=s.window.RcSimpleUI.confirmModelOverride(file,'AN4512D-2UM-019');
+ assert.equal(s.node('modelOverrideDialog').open,true);
+ assert.equal(s.node('overrideRemoteModel').textContent,'AN4512D-2UM-019');
+ assert.equal(s.node('overrideFileModel').textContent,'AN4512E-20UM021-008');
+ s.node('cancelModelOverride').onclick();assert.equal(await pending,false);
+ pending=s.window.RcSimpleUI.confirmModelOverride(file,'AN4512D-2UM-019');
+ s.node('approveModelOverride').onclick();assert.equal(await pending,true);
+ s.node('proButton').onclick();assert.equal(s.node('proFirmware').hidden,true);assert.equal(s.node('proModelOverride').checked,false);
+});
+
+test('the model warning dismisses safely and translates to Polish',async()=>{
+ const s=setup();s.node('proButton').onclick();s.node('proPassword').value='1111';s.node('proForm').onsubmit({preventDefault(){}});s.node('proModelOverride').checked=true;
+ s.node('language').onchange({target:{value:'pl'}});
+ assert.equal(s.node('approveModelOverride').textContent,'Tak, zainstaluj ten BIN');
+ const pending=s.window.RcSimpleUI.confirmModelOverride({filename:'unknown.bin',fileModel:''},'AN4512D-2UM-019');
+ s.node('modelOverrideDialog').handlers.close();assert.equal(await pending,false);
+});
+
 test('web connection recovery is translated and the public page does not require APK downloads',()=>{
  const s=setup();
  s.window.RcSimpleUI.remote({connected:false,busy:false,metadata:{},connectionError:{name:'NetworkError',pairingRecovery:true}});
