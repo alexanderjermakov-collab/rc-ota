@@ -17,7 +17,7 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
  s.node('proButton').onclick();
  s.node('proPassword').value='1234';submit();
  assert.equal(s.node('proError').hidden,false);
- assert.equal(s.node('proOta').hidden,true);
+ assert.equal(s.node('proOta').hidden,false);
  s.node('proPassword').value='1111';submit();
  assert.equal(s.node('proRemote').hidden,false);
  assert.equal(s.node('proPid').textContent,'0x0010 (16)');
@@ -25,10 +25,21 @@ test('Pro requires the password and shows fresh IDs and server metadata until lo
  assert.equal(s.node('proSoftware').textContent,'V1');
  assert.equal(s.node('proOtaText').textContent,'name: sample.bin');
  s.node('proButton').onclick();
- assert.equal(s.node('proOta').hidden,true);
+ assert.equal(s.node('proOta').hidden,false);
 });
 
 test('the initial screen hides the empty pairing hint',()=>{const s=setup();assert.equal(s.node('screenMessage').hidden,true);assert.equal(s.node('screenMessage').textContent,'');});
+
+test('server TXT, filename and download actions have the same visibility in normal mode and Pro',()=>{
+ const s=setup(),value={model:'AN4512E-20UM021-008',status:'otaReady',text:'name: AN4512E-20UM021-008_V0.0.6.bin',filename:'AN4512E-20UM021-008_V0.0.6.bin',version:'0.0.6',url:'https://firmware.umc-poland.com/AN4512E-20UM021-008/ota_info.txt',binaryUrl:'https://firmware.umc-poland.com/AN4512E-20UM021-008/AN4512E-20UM021-008_V0.0.6.bin',canLoad:true};
+ s.window.RcSimpleUI.serverInfo(value);
+ assert.equal(s.node('proOta').hidden,false);assert.equal(s.node('serverBinary').hidden,false);
+ assert.equal(s.node('proOtaText').textContent,value.text);assert.equal(s.node('serverBinaryName').textContent,value.filename);
+ assert.equal(s.node('serverBinaryLink').href,value.binaryUrl);assert.equal(s.node('webDownloadServer').disabled,false);
+ s.node('proButton').onclick();s.node('proPassword').value='1111';s.node('proForm').onsubmit({preventDefault(){}});
+ assert.equal(s.node('proOta').hidden,false);assert.equal(s.node('serverBinary').hidden,false);
+ s.node('proButton').onclick();assert.equal(s.node('proOta').hidden,false);
+});
 
 test('Help switches between normal instructions and accurate Pro mode differences',()=>{
  const s=setup();assert.equal(s.node('normalHelp').hidden,false);assert.equal(s.node('proHelp').hidden,true);

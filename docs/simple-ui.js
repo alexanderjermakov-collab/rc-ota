@@ -4,6 +4,21 @@ const $=id=>document.getElementById(id);
 if(!$('aboutDialog'))return;
 const strings={
  "en": {
+  "serverErrorMessage": "See the server details above. Check the catalogue model or use the displayed direct link.",
+  "serverDownloading": "Downloading the listed BIN from the server…",
+  "serverInfo": "Review OTA Info TXT, then choose Load BIN from server or Save BIN to phone.",
+  "serverLoading": "Loading OTA Info TXT…",
+  "otaBinBlocked": "The browser could not load the BIN (network or server access/CORS). Its direct Save BIN to phone link remains available.",
+  "otaNotFound": "The server catalogue was not found (HTTP 404). Check the model name; a renamed model may use a different folder.",
+  "otaReady": "OTA Info TXT loaded. Review its contents and the BIN filename below.",
+  "otaEnterModel": "Enter the server catalogue model and press Read OTA Info TXT. After a model rename, use its new server name.",
+  "serverBinInstructions": "Load BIN from server downloads and checks the listed file in this app. Save BIN to phone opens its direct server link. No installation starts until you confirm Update remote.",
+  "loadServerBin": "Load BIN from server",
+  "saveServerBin": "Save BIN to phone",
+  "serverBinLabel": "BIN listed in OTA Info TXT",
+  "readOtaInfo": "Read OTA Info TXT",
+  "serverModelLabel": "Server catalogue model",
+  "serverFirmware": "Server firmware",
   "diagnosticError": "Could not prepare the diagnostic report. Try Save diagnostics.",
   "diagnosticSaved": "Diagnostic JSON saved. Attach it to an email or send it with another app.",
   "diagnosticCancelled": "Sharing cancelled.",
@@ -12,12 +27,12 @@ const strings={
   "proChecksHelp": "Pro retains battery, BIN size and hash, OTA service and live-device checks. The operator is responsible for hardware and firmware compatibility.",
   "proMacHelp": "Web Bluetooth does not expose the physical MAC address. In the web app this field is unavailable; it is not reconstructed from the browser device ID. VID and PID appear when the remote provides them.",
   "proDataHelp": "Pro shows additional information: MAC address (when available), VID (Vendor ID), PID (Product ID), software version and OTA server metadata. VID and PID are displayed in hexadecimal and decimal.",
-  "proModelHelp": "Normal mode requires a BIN filename matching the connected model. In Pro, enable Allow a different model name (local BIN) to bypass that match. A separate warning and confirmation are shown before each overridden installation.",
+  "proModelHelp": "Normal mode requires a BIN filename matching the connected model. In Pro, enable Allow a different model name (BIN) to bypass filename or server-catalogue matching. A separate warning and confirmation are shown before each overridden installation.",
   "proVersionHelp": "Local BINs can upgrade, downgrade or reinstall the same version without a newer-version restriction. This is also available for local BINs in normal mode. Server updates still require a newer version in both modes.",
   "modeComparison": "Normal mode and Pro",
   "proHelpIntro": "Pro is an engineering mode for firmware testing and model renaming.",
   "proHelpTitle": "Help — Pro",
-  "proOverride": "Allow a different model name (local BIN)",
+  "proOverride": "Allow a different model name (BIN)",
   "proOverrideHint": "For engineering use after a model rename. Confirm hardware compatibility before installing.",
   "overrideTitle": "Different model name",
   "overrideWarning": "This BIN filename does not match the connected model. An incompatible image can leave the remote unusable. Continue only if you have verified hardware and firmware compatibility.",
@@ -48,8 +63,8 @@ const strings={
   "partialRead": "Some fields could not be refreshed. The Bluetooth link is still open.",
   "openOta": "Open OTA Info.txt",
   "loadOta": "Open downloaded TXT",
-  "otaLoading": "Reading OTA Info.txt…",
-  "otaBlocked": "The browser could not read the server file. Open or download the original. You can then display the downloaded TXT here.",
+  "otaLoading": "Loading OTA Info TXT…",
+  "otaBlocked": "The browser could not read OTA Info TXT. Open the direct TXT link below to check access. If necessary, download that TXT and open it here.",
   "otaInvalid": "Could not open this TXT. Select an OTA Info.txt file up to 64 KB.",
   "otaLocal": "From the selected TXT file. For display only.",
   "about": "About",
@@ -126,7 +141,7 @@ const strings={
   "pair3": "Press Connect on this page, choose SHARP RCU or SHARP SOLAR RCU and allow access. Confirm any Android Pair request, including a pairing notification.",
   "pair4": "Wait for the exact model, firmware and battery. Keep this page open: firmware preparation and transfer use the same browser connection. An existing Android pairing can be kept if it works.",
   "file1": "Press From phone and choose the BIN for the exact displayed model. AN2303-2UM-001 and AN2303B-2UM-001 require different files.",
-  "file2": "Or press From server. If Chrome blocks the server download, use the displayed download link, save the BIN and select it with From phone. The AN2303 manufacturer filename is accepted unchanged only when its catalogue checksum matches.",
+  "file2": "Or press From server. Review OTA Info TXT and the listed filename, then press Load BIN from server. Save BIN to phone opens a direct download link. The same server workflow is available in normal mode and Pro.",
   "file3": "Wait until the file is ready. Confirm it once. The BIN and confirmation are kept for the next units of the same model.",
   "upgrade1": "Press Update remote. Keep the remote powered and nearby; leave this page open.",
   "upgrade2": "Wait for the transfer to finish. At 100% the bytes have been sent; that alone does not confirm installation.",
@@ -140,6 +155,21 @@ const strings={
   "permissionError": "Allow this remote in Chrome and confirm any Android pairing request or notification."
  },
  "pl": {
+  "serverErrorMessage": "Zobacz szczegóły serwera powyżej. Sprawdź model katalogu lub użyj bezpośredniego linku.",
+  "serverDownloading": "Pobieranie wskazanego BIN z serwera…",
+  "serverInfo": "Sprawdź OTA Info TXT, a następnie wczytaj BIN z serwera lub zapisz go w telefonie.",
+  "serverLoading": "Pobieranie OTA Info TXT…",
+  "otaBinBlocked": "Nie udało się wczytać BIN (sieć lub dostęp do serwera/CORS). Bezpośredni link Zapisz BIN w telefonie jest nadal dostępny.",
+  "otaNotFound": "Nie znaleziono katalogu (HTTP 404). Sprawdź nazwę modelu; po zmianie nazwy katalog może być inny.",
+  "otaReady": "Odczytano OTA Info TXT. Sprawdź treść i nazwę BIN poniżej.",
+  "otaEnterModel": "Wpisz model katalogu i naciśnij Odczytaj OTA Info TXT. Po zmianie nazwy modelu użyj nowej nazwy na serwerze.",
+  "serverBinInstructions": "Wczytaj BIN z serwera pobiera i sprawdza wskazany plik w aplikacji. Zapisz BIN w telefonie otwiera jego bezpośredni adres. Instalacja rozpoczyna się dopiero po potwierdzeniu Aktualizuj pilot.",
+  "loadServerBin": "Wczytaj BIN z serwera",
+  "saveServerBin": "Zapisz BIN w telefonie",
+  "serverBinLabel": "BIN wskazany w OTA Info TXT",
+  "readOtaInfo": "Odczytaj OTA Info TXT",
+  "serverModelLabel": "Model katalogu na serwerze",
+  "serverFirmware": "Oprogramowanie z serwera",
   "diagnosticError": "Nie udało się przygotować raportu. Spróbuj zapisać diagnostykę.",
   "diagnosticSaved": "Zapisano plik JSON diagnostyki. Dołącz go do wiadomości e-mail lub wyślij inną aplikacją.",
   "diagnosticCancelled": "Anulowano udostępnianie.",
@@ -148,12 +178,12 @@ const strings={
   "proChecksHelp": "Pro zachowuje kontrolę baterii, rozmiaru i skrótu BIN, usługi OTA oraz danych podłączonego urządzenia. Operator odpowiada za zgodność sprzętu i oprogramowania.",
   "proMacHelp": "Web Bluetooth nie udostępnia fizycznego adresu MAC. W aplikacji webowej to pole jest niedostępne; nie jest odtwarzane z identyfikatora urządzenia przeglądarki. VID i PID są widoczne, gdy pilot je udostępnia.",
   "proDataHelp": "Pro pokazuje dodatkowe informacje: adres MAC (gdy dostępny), VID (identyfikator producenta), PID (identyfikator produktu), wersję oprogramowania oraz metadane serwera OTA. VID i PID są wyświetlane szesnastkowo i dziesiętnie.",
-  "proModelHelp": "Tryb normalny wymaga zgodności nazwy pliku BIN z podłączonym modelem. W Pro włącz Zezwól na inną nazwę modelu (lokalny BIN), aby pominąć to dopasowanie. Przed każdą taką instalacją pojawia się osobne ostrzeżenie i potwierdzenie.",
+  "proModelHelp": "Tryb normalny wymaga zgodności nazwy pliku BIN z podłączonym modelem. W Pro włącz Zezwól na inną nazwę modelu (BIN), aby pominąć dopasowanie nazwy pliku lub katalogu serwera. Przed każdą taką instalacją pojawia się osobne ostrzeżenie i potwierdzenie.",
   "proVersionHelp": "Lokalny BIN umożliwia aktualizację, obniżenie wersji i ponowną instalację tej samej wersji bez wymogu nowszej wersji. Dotyczy to także lokalnych BIN w trybie normalnym. Aktualizacje z serwera w obu trybach nadal wymagają nowszej wersji.",
   "modeComparison": "Tryb normalny i Pro",
   "proHelpIntro": "Pro to tryb inżynierski do testowania oprogramowania i zmiany nazwy modelu.",
   "proHelpTitle": "Pomoc — Pro",
-  "proOverride": "Zezwól na inną nazwę modelu (lokalny BIN)",
+  "proOverride": "Zezwól na inną nazwę modelu (BIN)",
   "proOverrideHint": "Do prac inżynierskich po zmianie nazwy modelu. Przed instalacją sprawdź zgodność sprzętu.",
   "overrideTitle": "Inna nazwa modelu",
   "overrideWarning": "Nazwa tego pliku BIN nie odpowiada modelowi podłączonego pilota. Niezgodny obraz może uniemożliwić działanie pilota. Kontynuuj tylko po sprawdzeniu zgodności sprzętu i oprogramowania.",
@@ -184,8 +214,8 @@ const strings={
   "partialRead": "Nie udało się odświeżyć części danych. Połączenie Bluetooth nadal działa.",
   "openOta": "Otwórz OTA Info.txt",
   "loadOta": "Otwórz pobrany TXT",
-  "otaLoading": "Odczytywanie OTA Info.txt…",
-  "otaBlocked": "Przeglądarka nie mogła odczytać pliku z serwera. Otwórz lub pobierz oryginał. Pobrany plik TXT możesz wyświetlić tutaj.",
+  "otaLoading": "Pobieranie OTA Info TXT…",
+  "otaBlocked": "Przeglądarka nie odczytała OTA Info TXT. Otwórz bezpośredni adres TXT poniżej, aby sprawdzić dostęp. W razie potrzeby pobierz TXT i otwórz go tutaj.",
   "otaInvalid": "Nie można otworzyć pliku. Wybierz OTA Info.txt o rozmiarze do 64 KB.",
   "otaLocal": "Z wybranego pliku TXT. Tylko do wyświetlenia.",
   "about": "O programie",
@@ -262,7 +292,7 @@ const strings={
   "pair3": "Naciśnij Połącz na tej stronie, wybierz SHARP RCU lub SHARP SOLAR RCU i zezwól na dostęp. Potwierdź żądanie Paruj w Androidzie, także w powiadomieniu.",
   "pair4": "Poczekaj na dokładny model, wersję i baterię. Pozostaw stronę otwartą: przygotowanie i przesyłanie oprogramowania używa tego samego połączenia przeglądarki. Zachowaj istniejące parowanie Androida, jeśli działa.",
   "file1": "Naciśnij Z telefonu i wybierz BIN dla dokładnego modelu na ekranie. AN2303-2UM-001 i AN2303B-2UM-001 wymagają różnych plików.",
-  "file2": "Lub naciśnij Z serwera. Jeśli Chrome blokuje pobieranie, użyj widocznego łącza, zapisz BIN i wybierz go przyciskiem Z telefonu. Oryginalna nazwa pliku producenta AN2303 jest akceptowana tylko przy zgodnej sumie kontrolnej katalogu.",
+  "file2": "Lub naciśnij Z serwera. Sprawdź OTA Info TXT oraz nazwę pliku i naciśnij Wczytaj BIN z serwera. Zapisz BIN w telefonie otwiera bezpośredni link pobierania. Procedura jest taka sama w trybie normalnym i Pro.",
   "file3": "Poczekaj na gotowość pliku i zatwierdź go raz. BIN i zgoda zostają zachowane dla kolejnych pilotów tego samego modelu.",
   "upgrade1": "Naciśnij Aktualizuj pilot. Trzymaj włączony pilot w pobliżu i nie zamykaj strony.",
   "upgrade2": "Poczekaj na zakończenie transferu. 100% oznacza wysłanie danych, a nie potwierdzenie instalacji.",
@@ -305,8 +335,14 @@ function renderPro(){
  $('proSoftware').textContent=field('software')||'—';
  $('proReadNote').hidden=!pro||remote.native||!hasPrevious;
  $('proReadNote').textContent=t('lastRead');
- const info=serverInfo?.model===metadata.model?serverInfo:null;
- $('proOta').hidden=!pro||!info;
+ const info=serverInfo;
+ $('proOta').hidden=!info;
+ $('serverError').hidden=!info?.error;$('serverError').textContent=info?.error||'';
+ $('serverBinary').hidden=!info?.binaryUrl;
+ $('serverBinaryName').textContent=info?.filename||'';
+ $('serverBinaryVersion').textContent=info?.version?t('version')+' '+info.version:'';
+ $('webDownloadServer').disabled=!info?.canLoad;
+ if(info?.binaryUrl){$('serverBinaryLink').href=info.binaryUrl;$('serverBinaryLink').setAttribute('download',info.filename||'firmware.bin');}
  $('proOtaStatus').textContent=info?.status?t(info.status):'';
  $('proOtaText').textContent=info?.text||'';
  $('proOtaText').hidden=!info?.text;
@@ -322,7 +358,7 @@ function render(){
  $('webConfirmLabel').textContent=t(file?.modelOverride?'confirmProFile':'confirm');
  $('selectedVersion').textContent=file?(file.version?t('version')+' '+file.version:t('localVersion'))+' · '+t(file.source==='local'?'sourcePhone':'sourceServer')+(file.batchApproved?' · '+t('approved'):''):t('chooseSource');
  let message=t(remote.busy?'reading':connected?'choose':remote.readAt?'historical':'start');
- const states={'local-selected':()=>t('localSelected'),retained:()=>t('retained'),preparing:()=>t('preparing'),ready:()=>t(file?.modelOverride?'overrideReady':file?.batchApproved?'batchReady':'ready'),transferring:()=>t('transferring',{progress:upgrade.progress||0}),verifying:()=>t('verifying'),installed:()=>t('installed',{version:upgrade.actualFirmware||file?.version||'—'}),'installation-unconfirmed':()=>upgrade.actualFirmware?t('unconfirmedRead',{version:upgrade.actualFirmware}):t('unconfirmed'),'awaiting-reconnect':()=>t('awaitingReconnect'),'model-mismatch':()=>t('modelMismatch',{actual:upgrade.detectedModel||remote.metadata?.model||'—',expected:upgrade.expectedModel||file?.model||'—'}),error:()=>errorMessage(upgrade.message)};
+ const states={'server-loading':()=>t('serverLoading'),'server-info':()=>t('serverInfo'),'server-downloading':()=>t('serverDownloading'),'server-info-error':()=>t('serverErrorMessage'),'server-download-error':()=>t('serverErrorMessage'),'local-selected':()=>t('localSelected'),retained:()=>t('retained'),preparing:()=>t('preparing'),ready:()=>t(file?.modelOverride?'overrideReady':file?.batchApproved?'batchReady':'ready'),transferring:()=>t('transferring',{progress:upgrade.progress||0}),verifying:()=>t('verifying'),installed:()=>t('installed',{version:upgrade.actualFirmware||file?.version||'—'}),'installation-unconfirmed':()=>upgrade.actualFirmware?t('unconfirmedRead',{version:upgrade.actualFirmware}):t('unconfirmed'),'awaiting-reconnect':()=>t('awaitingReconnect'),'model-mismatch':()=>t('modelMismatch',{actual:upgrade.detectedModel||remote.metadata?.model||'—',expected:upgrade.expectedModel||file?.model||'—'}),error:()=>errorMessage(upgrade.message)};
  if(states[upgrade.state])message=states[upgrade.state]();else if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');else if(/failed|unavailable|cancelled|timed out/i.test(remote.message||''))message=errorMessage(remote.message);
  if(['retained','idle'].includes(upgrade.state)){if(/Site access revoked/i.test(remote.message||''))message=t('forgotten');else if(/Browser forget|Native connection closed/i.test(remote.message||''))message=t('forgetLimited');}
  if(remote.busy&&!['transferring','verifying'].includes(upgrade.state))message=t('reading');else if(remote.connectionError?.pairingRecovery)message=t('webPairingRecovery');else if(remote.connectionError?.name==='SecurityError')message=t('permissionError');else if(!connected&&!remote.locked&&/Remote.*disconnected/i.test(remote.message||'')&&!['installed','installation-unconfirmed','awaiting-reconnect'].includes(upgrade.state))message=t(remote.readAt?'historical':'retry');
@@ -334,7 +370,7 @@ function errorMessage(message=''){
  for(const [pattern,key] of [[/CORS|could not read the manufacturer|Failed to fetch/i,'cors'],[/30%|battery/i,'lowBattery'],[/exact model|filename|different.*model|model.*changed/i,'wrongModel'],[/newer|No upgrade/i,'noNewer'],[/MD5|file changed|checksum/i,'badFile'],[/cancelled/i,'cancelled'],[/unavailable.*browser|Bluetooth is unavailable/i,'browser'],[/disconnected|timed out|Connection failed|link lost/i,'retry']])if(pattern.test(message))return t(key);
  return t('error');
 }
-window.RcSimpleUI={diagnosticStatus(key){$('diagnosticStatus').textContent=t(key);$('diagnosticStatus').hidden=false;},isPro:()=>pro,confirmModelOverride(selected,model){if(!pro||!$('proModelOverride').checked)return Promise.resolve(false);$('overrideRemoteModel').textContent=model;$('overrideFileModel').textContent=selected.fileModel||t('unknownFileModel');$('overrideFilename').textContent=selected.filename;return new Promise(resolve=>{pendingOverride=resolve;$('modelOverrideDialog').showModal();});},serverInfo(value){serverInfo=value;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
+window.RcSimpleUI={diagnosticStatus(key){$('diagnosticStatus').textContent=t(key);$('diagnosticStatus').hidden=false;},isPro:()=>pro,confirmModelOverride(selected,model){if(!pro||!$('proModelOverride').checked)return Promise.resolve(false);$('overrideRemoteModel').textContent=model;$('overrideFileModel').textContent=selected.fileModel||t('unknownFileModel');$('overrideFilename').textContent=selected.filename;return new Promise(resolve=>{pendingOverride=resolve;$('modelOverrideDialog').showModal();});},serverInfo(value){serverInfo=value;if(value&&typeof value.model==='string')$('serverModel').value=value.model;renderPro()},remote(value){remote=value;render()},upgrade(value,selected){upgrade=value;file=selected||null;render()}};
 for(const name of ['about','help']){const dialog=$(name+'Dialog');$(name+'Button').onclick=()=>dialog.showModal();$('close'+name[0].toUpperCase()+name.slice(1)).onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog){const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}});}
 const proDialog=$('proDialog'),password=$('proPassword');
 $('proButton').onclick=()=>{
@@ -355,11 +391,11 @@ $('proForm').onsubmit=event=>{
 $('proOtaFile').onchange=async event=>{
  const input=event.target,selected=input.files[0],info=serverInfo;
  input.value='';
- if(!selected||!pro||!info)return;
+ if(!selected||!info)return;
  try{
   if(!/\.txt$/i.test(selected.name)||selected.size>65536)throw Error();
   const text=await selected.text();
-  if(serverInfo===info)serverInfo={...info,text,status:'otaLocal'};
+  if(serverInfo===info)window.RcWebUpgrade?.importServerInfo(text);
  }catch{
   if(serverInfo===info)serverInfo={...info,text:'',status:'otaInvalid'};
  }

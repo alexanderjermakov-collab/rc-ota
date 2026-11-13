@@ -104,7 +104,7 @@ test('the shared diagnostic snapshot includes Pro state, identifiers and connect
  const s=setup(),remote=savedFixture();s.context.navigator.bluetooth={requestDevice:async()=>remote};
  await s.el('connect').onclick();s.context.window.RcSimpleUI={isPro:()=>true};s.el('proModelOverride').checked=true;
  const report=s.context.window.RcDiagnosticSnapshot();
- assert.equal(report.version,'0.20.0');assert.equal(report.mode,'pro');assert.equal(report.modelOverrideEnabled,true);
+ assert.equal(report.version,'0.21.0');assert.equal(report.mode,'pro');assert.equal(report.modelOverrideEnabled,true);
  assert.ok(report.metadata.model);assert.ok(report.entries.length);assert.ok(report.connectionTelemetry);
  let downloaded=0;s.context.window.RcDiagnostics={download:()=>{downloaded++}};s.el('export').onclick();assert.equal(downloaded,1);
 });
