@@ -91,7 +91,7 @@ async function readInfoOnly(){
  let base;try{base=catalogueBase(model);}catch(error){showServer({model,status:'otaEnterModel',error:error.message});return;}
  const previous=serverInfoState?.model===model?serverInfoState:null;
  const url=previous?.url||base+'ota_info.txt',epoch=++serverEpoch;
- serverEntry=null;preparing=true;showServer({...previous,model,url,status:'otaLoading'});render();
+ serverEntry=null;clearFile();report.chosenFilename='';$('webFirmware').value='';preparing=true;showServer({...previous,model,url,status:'otaLoading'});render();
  try{await readMetadata(url,model,epoch,previous?.binaryUrl);}
  catch(error){showServer({...serverInfoState,status:'otaBlocked',error:error.message});record('server-info-error',{url,message:error.message});status('Could not read OTA Info TXT: '+error.message,'server-info-error');}
  finally{preparing=false;render();}
