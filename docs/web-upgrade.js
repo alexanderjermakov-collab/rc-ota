@@ -57,36 +57,58 @@ function parseServerInfo(raw,model,metadataUrl){
  if(!/^[A-Za-z0-9][A-Za-z0-9_.-]*\.bin$/i.test(info.name)||info.name.includes('..'))throw Error('The server metadata contains an invalid BIN filename.');
  return {model,metadataUrl,firmwareUrl:base+encodeURIComponent(info.name),info,raw};
 }
+async function readIndexedMetadata(indexText,model,indexUrl,epoch,imported=false){
+ const base=catalogueBase(model),links=RcOta.manifest(indexText,base);
+ const actualModel=decodeURIComponent(new URL(links.firmwareUrl).pathname.split('/')[1]||'');
+ catalogueBase(actualModel);
+ if(!new URL(links.metadataUrl).pathname.startsWith('/'+actualModel+'/'))throw Error('The index BIN and TXT must belong to the same catalogue.');
+ const filename=decodeURIComponent(new URL(links.firmwareUrl).pathname.split('/').pop());
+ if(!/^[A-Za-z0-9][A-Za-z0-9_.-]*\.bin$/i.test(filename)||filename.includes('..'))throw Error('Invalid BIN filename in the server index.');
+ if(epoch!==serverEpoch)return;
+ showServer({model:actualModel,indexUrl,indexText,indexImported:imported,url:links.metadataUrl,filename,binaryUrl:links.firmwareUrl,status:'otaLoading'});
+ // The direct BIN link is usable as soon as the index is parsed, even if TXT fetch fails.
+ const raw=new TextDecoder().decode(await download(links.metadataUrl,65536));
+ if(epoch!==serverEpoch)return;
+ serverEntry=parseServerInfo(raw,actualModel,links.metadataUrl);
+ if(serverEntry.firmwareUrl!==links.firmwareUrl){serverEntry=null;throw Error('The index BIN URL does not match OTA Info TXT.');}
+ showServer({...serverInfoState,text:raw,version:serverEntry.info.version,status:'otaReady'});
+ record('server-info-loaded',{model:actualModel,indexUrl,filename,metadataUrl:links.metadataUrl,indexImported:imported});
+ status('Server index and OTA Info TXT loaded. Review the file, then load or save the BIN.','server-info');
+}
 async function readServer(){
  if(running||preparing)return;
  const model=$('serverModel').value.trim()||context()?.metadata?.model||'';
  const epoch=++serverEpoch;serverEntry=null;clearFile();report.chosenFilename='';$('webFirmware').value='';
  if(!model){showServer({model:'',status:'otaEnterModel'});render();return;}
  let base;try{base=catalogueBase(model);}catch(error){showServer({model,status:'otaEnterModel',error:error.message});render();return;}
- const metadataUrl=base+'ota_info.txt';preparing=true;showServer({model,url:metadataUrl,status:'otaLoading'});status('Loading OTA Info TXT from the server.','server-loading');render();
+ preparing=true;showServer({model,indexUrl:base,status:'otaIndexLoading'});status('Loading the server index…','server-loading');render();
  try{
-  let raw,actualUrl=metadataUrl;
-  try{raw=new TextDecoder().decode(await download(metadataUrl,65536));RcOta.info(raw);}
-  catch(first){
-   // Some catalogues use a different metadata filename, advertised by their listing.
-   if(!/HTTP 404|Invalid OTA|metadata is missing/.test(first.message))throw first;
-   const links=RcOta.manifest(new TextDecoder().decode(await download(base,65536)));
-   actualUrl=links.metadataUrl;raw=new TextDecoder().decode(await download(actualUrl,65536));
-   const parsed=parseServerInfo(raw,model,actualUrl);
-   if(links.firmwareUrl!==parsed.firmwareUrl)throw Error('The catalogue BIN link does not match OTA Info TXT.');
-  }
-  if(epoch!==serverEpoch)return;
-  serverEntry=parseServerInfo(raw,model,actualUrl);
-  showServer({model,url:actualUrl,text:raw,status:'otaReady',filename:serverEntry.info.name,version:serverEntry.info.version,binaryUrl:serverEntry.firmwareUrl});
-  record('server-info-loaded',{model,filename:serverEntry.info.name,metadataUrl:actualUrl});status('OTA Info TXT loaded. Review it, then choose Load BIN from server or Save BIN to phone.','server-info');
- }catch(error){if(epoch===serverEpoch){showServer({model,url:metadataUrl,status:/HTTP 404/.test(error.message)?'otaNotFound':'otaBlocked',error:error.message});status('Could not load OTA Info TXT: '+error.message,'server-info-error');}}
+  let indexText,indexUrl=base;
+  try{indexText=new TextDecoder().decode(await download(indexUrl,65536));}
+  catch(error){if(!/HTTP 403|HTTP 404/.test(error.message))throw error;indexUrl=base+'index.html';indexText=new TextDecoder().decode(await download(indexUrl,65536));}
+  await readIndexedMetadata(indexText,model,indexUrl,epoch);
+ }catch(error){if(epoch===serverEpoch){serverEntry=null;showServer({...serverInfoState,status:/HTTP 404/.test(error.message)?'otaNotFound':'otaBlocked',error:error.message});status('Could not read the server index or OTA Info TXT: '+error.message,'server-info-error');}}
+ finally{preparing=false;render();}
+}
+async function importServerIndex(indexText){
+ if(running||preparing)return;
+ const epoch=++serverEpoch;serverEntry=null;clearFile();report.chosenFilename='';
+ const links=RcOta.manifest(indexText),model=decodeURIComponent(new URL(links.firmwareUrl).pathname.split('/')[1]||'');
+ const base=catalogueBase(model);preparing=true;
+ try{await readIndexedMetadata(indexText,model,base,epoch,true);}
+ catch(error){serverEntry=null;showServer({...serverInfoState,status:'otaBlocked',error:error.message});status('Index opened; automatic TXT reading failed. The direct links remain available.','server-info-error');}
  finally{preparing=false;render();}
 }
 function importServerInfo(raw){
  if(running||preparing)return;
- const model=$('serverModel').value.trim();const base=catalogueBase(model);serverEpoch++;serverEntry=parseServerInfo(raw,model,base+'ota_info.txt');
- showServer({model,url:serverEntry.metadataUrl,text:raw,status:'otaLocal',filename:serverEntry.info.name,version:serverEntry.info.version,binaryUrl:serverEntry.firmwareUrl});render();
+ const model=$('serverModel').value.trim(),base=catalogueBase(model),previous=serverInfoState;
+ serverEpoch++;serverEntry=null;
+ showServer({...previous,model,text:raw,status:'otaInvalid'});
+ const entry=parseServerInfo(raw,model,previous?.url||base+'ota_info.txt');
+ if(previous?.binaryUrl&&previous.binaryUrl!==entry.firmwareUrl)throw Error('The imported TXT does not match the BIN link in the index.');
+ serverEntry=entry;showServer({...previous,model,url:entry.metadataUrl,text:raw,status:'otaLocal',filename:entry.info.name,version:entry.info.version,binaryUrl:entry.firmwareUrl});render();
 }
+
 async function prepare(source){
  if(source==='server')return readServer();
  if(running||preparing)return;const c=context();if(!c?.connected||c.native)return;
@@ -158,5 +180,5 @@ window.addEventListener('rcota-metadata',event=>{if(running)return;const previou
  if(values?.model){const same=pendingCheck&&(c?.device===pendingCheck.device||(c?.device?.id&&c.device.id===pendingCheck.device?.id));if(same){record('manual-readback',{model:values.model,firmware:values.firmware});applyReadback(values);render();return;}if(retained)void bindRetained();else if($('webFirmware').files[0])void prepare('local');}
  else if(['installed','installation-unconfirmed','awaiting-reconnect','model-mismatch','error'].includes(previous.state)){report=previous;status(previous.message,previous.state);}});
 for(const name of ['rcota-remote-forgotten','rcota-next-remote'])window.addEventListener(name,()=>{if(!running){serverEpoch++;serverEntry=null;showServer(null);pendingCheck=null;invalidate();}});
-window.RcWebUpgrade={importServerInfo,selectLocalFile(){if(running||preparing)return;clearFile();if(context()?.connected) return prepare('local');status('BIN selected. Connect and read the remote to prepare it.','local-selected');},modeChanged(){if(running||preparing)return;if(retained?.modelOverride&&!proOverride()){clearFile();}if($('webFirmware').files[0])void prepare('local');},diagnostics:()=>({...report,server:serverInfoState,package:summary(),profile:'telink-legacy',batchApproved:approved(),systemBondState:'Not observable in Web Bluetooth',postTransferDisconnect:'No automatic disconnect; a healthy link is retained'}),bindRetained,storageIdle:()=>storageQueue};render();void restoreFile();
+window.RcWebUpgrade={importServerInfo,importServerIndex,selectLocalFile(){if(running||preparing)return;clearFile();if(context()?.connected) return prepare('local');status('BIN selected. Connect and read the remote to prepare it.','local-selected');},modeChanged(){if(running||preparing)return;if(retained?.modelOverride&&!proOverride()){clearFile();}if($('webFirmware').files[0])void prepare('local');},diagnostics:()=>({...report,server:serverInfoState,package:summary(),profile:'telink-legacy',batchApproved:approved(),systemBondState:'Not observable in Web Bluetooth',postTransferDisconnect:'No automatic disconnect; a healthy link is retained'}),bindRetained,storageIdle:()=>storageQueue};render();void restoreFile();
 })();

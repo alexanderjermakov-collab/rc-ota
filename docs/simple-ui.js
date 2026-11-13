@@ -4,22 +4,26 @@ const $=id=>document.getElementById(id);
 if(!$('aboutDialog'))return;
 const strings={
  "en": {
+  "indexInvalid": "Could not read this index. It must list one manufacturer BIN URL and one OTA Info TXT URL.",
+  "otaIndexLoading": "Loading server index…",
+  "openIndexFile": "Open downloaded index",
+  "openServerIndex": "Open server index",
   "serverErrorMessage": "See the server details above. Check the catalogue model or use the displayed direct link.",
   "serverDownloading": "Downloading the listed BIN from the server…",
   "serverInfo": "Review OTA Info TXT, then choose Load BIN from server or Save BIN to phone.",
-  "serverLoading": "Loading OTA Info TXT…",
+  "serverLoading": "Loading the server index and OTA Info TXT…",
   "otaBinBlocked": "The browser could not load the BIN (network or server access/CORS). Its direct Save BIN to phone link remains available.",
   "otaNotFound": "The server catalogue was not found (HTTP 404). Check the model name; a renamed model may use a different folder.",
   "otaReady": "OTA Info TXT loaded. Review its contents and the BIN filename below.",
-  "otaEnterModel": "Enter the server catalogue model and press Read OTA Info TXT. After a model rename, use its new server name.",
+  "otaEnterModel": "Enter the catalogue model and read its server index, or open a downloaded index file.",
   "serverBinInstructions": "Load BIN from server downloads and checks the listed file in this app. Save BIN to phone opens its direct server link. No installation starts until you confirm Update remote.",
   "loadServerBin": "Load BIN from server",
   "saveServerBin": "Save BIN to phone",
-  "serverBinLabel": "BIN listed in OTA Info TXT",
-  "readOtaInfo": "Read OTA Info TXT",
+  "serverBinLabel": "BIN listed in the server index",
+  "readOtaInfo": "Read index and OTA Info TXT",
   "serverModelLabel": "Server catalogue model",
   "serverFirmware": "Server firmware",
-  "diagnosticError": "Could not prepare the diagnostic report. Try Save diagnostics.",
+  "diagnosticError": "Could not prepare the report. Try Share Diagnostic again.",
   "diagnosticSaved": "Diagnostic JSON saved. Attach it to an email or send it with another app.",
   "diagnosticCancelled": "Sharing cancelled.",
   "diagnosticShared": "Diagnostics handed to the selected sharing app.",
@@ -64,7 +68,7 @@ const strings={
   "openOta": "Open OTA Info.txt",
   "loadOta": "Open downloaded TXT",
   "otaLoading": "Loading OTA Info TXT…",
-  "otaBlocked": "The browser could not read OTA Info TXT. Open the direct TXT link below to check access. If necessary, download that TXT and open it here.",
+  "otaBlocked": "The browser could not read the server index or OTA Info TXT. Use the direct links when available, or open a downloaded index/TXT file.",
   "otaInvalid": "Could not open this TXT. Select an OTA Info.txt file up to 64 KB.",
   "otaLocal": "From the selected TXT file. For display only.",
   "about": "About",
@@ -124,7 +128,7 @@ const strings={
   "fileNote": "Battery: at least 30%. Local BINs allow upgrade, downgrade or reinstall; server firmware must be newer. The BIN is retained in this browser when local storage is available. Each remote still needs a separate Update remote press.",
   "reconnectHelp": "Forget does not delete Android pairing. After Forget, Connect opens a fresh device chooser. If Android pairing is stale, remove only that remote in Android Bluetooth settings and repeat steps 1–4.",
   "support": "Troubleshooting",
-  "diagnosticsHint": "Save or share a JSON report containing remote information, firmware checks and the activity log. Choose the recipient in your sharing app.",
+  "diagnosticsHint": "Share a JSON report containing remote information, firmware checks and the activity log. Choose the recipient in your sharing app.",
   "saveDiagnostics": "Save diagnostics",
   "next": "Next remote",
   "retained": "BIN retained. Connect the next remote of the same model.",
@@ -141,7 +145,7 @@ const strings={
   "pair3": "Press Connect on this page, choose SHARP RCU or SHARP SOLAR RCU and allow access. Confirm any Android Pair request, including a pairing notification.",
   "pair4": "Wait for the exact model, firmware and battery. Keep this page open: firmware preparation and transfer use the same browser connection. An existing Android pairing can be kept if it works.",
   "file1": "Press From phone and choose the BIN for the exact displayed model. AN2303-2UM-001 and AN2303B-2UM-001 require different files.",
-  "file2": "Or press From server. Review OTA Info TXT and the listed filename, then press Load BIN from server. Save BIN to phone opens a direct download link. The same server workflow is available in normal mode and Pro.",
+  "file2": "Or press From server. The app reads the server index to find the BIN and OTA Info TXT URLs. Review the TXT, then load the BIN from server or save it to your phone. You can also open a downloaded index.",
   "file3": "Wait until the file is ready. Confirm it once. The BIN and confirmation are kept for the next units of the same model.",
   "upgrade1": "Press Update remote. Keep the remote powered and nearby; leave this page open.",
   "upgrade2": "Wait for the transfer to finish. At 100% the bytes have been sent; that alone does not confirm installation.",
@@ -155,22 +159,26 @@ const strings={
   "permissionError": "Allow this remote in Chrome and confirm any Android pairing request or notification."
  },
  "pl": {
+  "indexInvalid": "Nie udało się odczytać indeksu. Musi wskazywać jeden adres BIN producenta i jeden adres OTA Info TXT.",
+  "otaIndexLoading": "Pobieranie indeksu serwera…",
+  "openIndexFile": "Otwórz pobrany indeks",
+  "openServerIndex": "Otwórz indeks serwera",
   "serverErrorMessage": "Zobacz szczegóły serwera powyżej. Sprawdź model katalogu lub użyj bezpośredniego linku.",
   "serverDownloading": "Pobieranie wskazanego BIN z serwera…",
   "serverInfo": "Sprawdź OTA Info TXT, a następnie wczytaj BIN z serwera lub zapisz go w telefonie.",
-  "serverLoading": "Pobieranie OTA Info TXT…",
+  "serverLoading": "Pobieranie indeksu serwera i OTA Info TXT…",
   "otaBinBlocked": "Nie udało się wczytać BIN (sieć lub dostęp do serwera/CORS). Bezpośredni link Zapisz BIN w telefonie jest nadal dostępny.",
   "otaNotFound": "Nie znaleziono katalogu (HTTP 404). Sprawdź nazwę modelu; po zmianie nazwy katalog może być inny.",
   "otaReady": "Odczytano OTA Info TXT. Sprawdź treść i nazwę BIN poniżej.",
-  "otaEnterModel": "Wpisz model katalogu i naciśnij Odczytaj OTA Info TXT. Po zmianie nazwy modelu użyj nowej nazwy na serwerze.",
+  "otaEnterModel": "Wpisz model katalogu i odczytaj indeks serwera lub otwórz pobrany plik indeksu.",
   "serverBinInstructions": "Wczytaj BIN z serwera pobiera i sprawdza wskazany plik w aplikacji. Zapisz BIN w telefonie otwiera jego bezpośredni adres. Instalacja rozpoczyna się dopiero po potwierdzeniu Aktualizuj pilot.",
   "loadServerBin": "Wczytaj BIN z serwera",
   "saveServerBin": "Zapisz BIN w telefonie",
-  "serverBinLabel": "BIN wskazany w OTA Info TXT",
-  "readOtaInfo": "Odczytaj OTA Info TXT",
+  "serverBinLabel": "BIN wskazany w indeksie serwera",
+  "readOtaInfo": "Odczytaj indeks i OTA Info TXT",
   "serverModelLabel": "Model katalogu na serwerze",
   "serverFirmware": "Oprogramowanie z serwera",
-  "diagnosticError": "Nie udało się przygotować raportu. Spróbuj zapisać diagnostykę.",
+  "diagnosticError": "Nie udało się przygotować raportu. Spróbuj ponownie udostępnić diagnostykę.",
   "diagnosticSaved": "Zapisano plik JSON diagnostyki. Dołącz go do wiadomości e-mail lub wyślij inną aplikacją.",
   "diagnosticCancelled": "Anulowano udostępnianie.",
   "diagnosticShared": "Przekazano diagnostykę do wybranej aplikacji.",
@@ -215,7 +223,7 @@ const strings={
   "openOta": "Otwórz OTA Info.txt",
   "loadOta": "Otwórz pobrany TXT",
   "otaLoading": "Pobieranie OTA Info TXT…",
-  "otaBlocked": "Przeglądarka nie odczytała OTA Info TXT. Otwórz bezpośredni adres TXT poniżej, aby sprawdzić dostęp. W razie potrzeby pobierz TXT i otwórz go tutaj.",
+  "otaBlocked": "Przeglądarka nie odczytała indeksu serwera lub OTA Info TXT. Użyj dostępnych bezpośrednich linków albo otwórz pobrany indeks/TXT.",
   "otaInvalid": "Nie można otworzyć pliku. Wybierz OTA Info.txt o rozmiarze do 64 KB.",
   "otaLocal": "Z wybranego pliku TXT. Tylko do wyświetlenia.",
   "about": "O programie",
@@ -275,7 +283,7 @@ const strings={
   "fileNote": "Bateria: co najmniej 30%. Lokalny BIN umożliwia aktualizację, obniżenie wersji lub ponowną instalację; wersja z serwera musi być nowsza. BIN jest zachowywany w tej przeglądarce, gdy dostępna jest pamięć lokalna. Dla każdego pilota osobno naciskasz Aktualizuj pilot.",
   "reconnectHelp": "Zapomnij nie usuwa parowania Androida. Po tej operacji Połącz otwiera nowy wybór urządzenia. Jeśli parowanie Androida jest nieaktualne, usuń tylko ten pilot w ustawieniach Bluetooth i powtórz kroki 1–4.",
   "support": "Rozwiązywanie problemów",
-  "diagnosticsHint": "Zapisz lub udostępnij raport JSON z danymi pilota, kontrolą oprogramowania i dziennikiem działania. Odbiorcę wybierasz w aplikacji do udostępniania.",
+  "diagnosticsHint": "Udostępnij raport JSON z danymi pilota, kontrolą oprogramowania i dziennikiem działania. Odbiorcę wybierasz w aplikacji do udostępniania.",
   "saveDiagnostics": "Zapisz diagnostykę",
   "next": "Następny pilot",
   "retained": "BIN zachowany. Połącz następny pilot tego samego modelu.",
@@ -292,7 +300,7 @@ const strings={
   "pair3": "Naciśnij Połącz na tej stronie, wybierz SHARP RCU lub SHARP SOLAR RCU i zezwól na dostęp. Potwierdź żądanie Paruj w Androidzie, także w powiadomieniu.",
   "pair4": "Poczekaj na dokładny model, wersję i baterię. Pozostaw stronę otwartą: przygotowanie i przesyłanie oprogramowania używa tego samego połączenia przeglądarki. Zachowaj istniejące parowanie Androida, jeśli działa.",
   "file1": "Naciśnij Z telefonu i wybierz BIN dla dokładnego modelu na ekranie. AN2303-2UM-001 i AN2303B-2UM-001 wymagają różnych plików.",
-  "file2": "Lub naciśnij Z serwera. Sprawdź OTA Info TXT oraz nazwę pliku i naciśnij Wczytaj BIN z serwera. Zapisz BIN w telefonie otwiera bezpośredni link pobierania. Procedura jest taka sama w trybie normalnym i Pro.",
+  "file2": "Lub naciśnij Z serwera. Aplikacja odczytuje indeks, aby znaleźć adresy BIN i OTA Info TXT. Sprawdź TXT, a następnie wczytaj BIN z serwera lub zapisz go w telefonie. Możesz też otworzyć pobrany indeks.",
   "file3": "Poczekaj na gotowość pliku i zatwierdź go raz. BIN i zgoda zostają zachowane dla kolejnych pilotów tego samego modelu.",
   "upgrade1": "Naciśnij Aktualizuj pilot. Trzymaj włączony pilot w pobliżu i nie zamykaj strony.",
   "upgrade2": "Poczekaj na zakończenie transferu. 100% oznacza wysłanie danych, a nie potwierdzenie instalacji.",
@@ -337,6 +345,9 @@ function renderPro(){
  $('proReadNote').textContent=t('lastRead');
  const info=serverInfo;
  $('proOta').hidden=!info;
+ $('serverIndexLink').hidden=!info?.indexUrl;if(info?.indexUrl)$('serverIndexLink').href=info.indexUrl;
+ $('serverIndexText').textContent=info?.indexText||'';$('serverIndexText').hidden=!info?.indexText;
+ $('serverIndexImport').hidden=!info||!!info.busy;
  $('serverError').hidden=!info?.error;$('serverError').textContent=info?.error||'';
  $('serverBinary').hidden=!info?.binaryUrl;
  $('serverBinaryName').textContent=info?.filename||'';
@@ -388,6 +399,11 @@ $('proForm').onsubmit=event=>{
  window.RcWebUpgrade?.modeChanged?.();
  renderPro();
 };
+$('serverIndexFile').onchange=async event=>{
+ const selected=event.target.files[0];event.target.value='';if(!selected)return;
+ try{if(selected.size>65536)throw Error('Index too large.');await window.RcWebUpgrade.importServerIndex(await selected.text());}
+ catch(error){serverInfo={model:$('serverModel').value,status:'indexInvalid',canLoad:false,error:error.message};renderPro();}
+};
 $('proOtaFile').onchange=async event=>{
  const input=event.target,selected=input.files[0],info=serverInfo;
  input.value='';
@@ -397,7 +413,7 @@ $('proOtaFile').onchange=async event=>{
   const text=await selected.text();
   if(serverInfo===info)window.RcWebUpgrade?.importServerInfo(text);
  }catch{
-  if(serverInfo===info)serverInfo={...info,text:'',status:'otaInvalid'};
+  if(serverInfo===info)serverInfo={...info,text:'',status:'otaInvalid',canLoad:false};
  }
  renderPro();
 };

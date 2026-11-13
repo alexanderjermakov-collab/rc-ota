@@ -15,6 +15,24 @@ function setup({native=false,properties={read:true,writeWithoutResponse:true},se
 }
 async function waitFor(predicate){const until=Date.now()+2000;while(!predicate()&&Date.now()<until)await new Promise(setImmediate);assert.ok(predicate(),'Expected asynchronous preparation to finish');}
 
+test('index links remain usable when the following TXT request is blocked',async()=>{
+ const s=setup({server:true,fetchOverride:async url=>{if(url.endsWith('.txt'))throw new TypeError('Failed to fetch')}});
+ await s.node('webPrepareServer').onclick();
+ assert.equal(s.requests.length,2);assert.ok(s.requests[0].endsWith('/'));assert.ok(s.requests[1].endsWith('.txt'));
+ const info=s.infos.at(-1);assert.equal(info.status,'otaBlocked');assert.ok(info.binaryUrl.endsWith('.bin'));
+ assert.ok(info.url.endsWith('.txt'));assert.ok(info.indexText.includes('.bin'));
+ assert.equal(s.node('webDownloadServer').disabled,true);assert.equal(s.writes.length,0);
+});
+
+test('a downloaded index can be parsed locally without a proxy, even when automatic TXT access is blocked',async()=>{
+ const s=setup({server:true,fetchOverride:async()=>{throw new TypeError('Failed to fetch')}});
+ const index='http://firmware.umc-poland.com/AN4512E-20UM021-008/AN4512E-20UM021-008_V0.0.6.bin\nhttp://firmware.umc-poland.com/AN4512E-20UM021-008/ota_info.txt';
+ await s.window.RcWebUpgrade.importServerIndex(index);
+ const info=s.infos.at(-1);assert.equal(info.indexImported,true);assert.equal(info.model,'AN4512E-20UM021-008');
+ assert.equal(info.binaryUrl,'https://firmware.umc-poland.com/AN4512E-20UM021-008/AN4512E-20UM021-008_V0.0.6.bin');
+ assert.equal(s.requests.length,1);assert.equal(s.writes.length,0);
+});
+
 test('server lookup can inspect a renamed catalogue without a BLE connection in normal mode and Pro',async()=>{
  for(const pro of [false,true]){
   const s=setup({server:true,pro,catalogue:'AN4512E-20UM021-008',localFilename:'AN4512E-20UM021-008_V0.0.16.bin'});
@@ -23,7 +41,7 @@ test('server lookup can inspect a renamed catalogue without a BLE connection in 
   assert.equal(info.status,'otaReady');assert.match(info.text,/name: AN4512E-20UM021-008/);
   assert.equal(info.filename,'AN4512E-20UM021-008_V0.0.16.bin');
   assert.equal(info.binaryUrl,'https://firmware.umc-poland.com/AN4512E-20UM021-008/AN4512E-20UM021-008_V0.0.16.bin');
-  assert.equal(s.requests.length,1);assert.equal(s.writes.length,0);
+  assert.equal(s.requests.length,2);assert.equal(s.writes.length,0);
  }
 });
 
@@ -42,13 +60,13 @@ test('binary fetch failure keeps the TXT, filename and real direct download URL 
  assert.equal(s.writes.length,0);assert.equal(s.node('webInstall').disabled,true);
 });
 
-test('a catalogue-specific TXT filename is discovered from the listing only when the default TXT is missing',async()=>{
+test('a catalogue-specific TXT filename is read from the index without guessing its name',async()=>{
  const base='https://firmware.umc-poland.com/'+model+'/',filename=model+'_V0.0.16.bin';
  const s=setup({server:true,fetchOverride:async url=>{
   if(url===base+'ota_info.txt')return new Response('Not found',{status:404});
   if(url===base)return new Response(base+filename+' '+base+'Release_Info.txt');
  }});
- await s.node('webPrepareServer').onclick();assert.equal(s.requests.length,3);
+ await s.node('webPrepareServer').onclick();assert.equal(s.requests.length,2);
  assert.equal(s.infos.at(-1).url,base+'Release_Info.txt');assert.equal(s.writes.length,0);
 });
 
@@ -64,7 +82,7 @@ test('normal mode can inspect another server model but preparing it requires exp
 
 test('malicious metadata cannot turn the direct BIN link into another host or a path traversal',async()=>{
  const s=setup({server:true,fetchOverride:async url=>url.endsWith('.txt')?new Response('name: ../../other.bin\nversion: 0.0.16\nmd5sum: '+'0'.repeat(32)):undefined});
- await s.node('webPrepareServer').onclick();assert.equal(s.infos.at(-1).binaryUrl,undefined);assert.equal(s.node('webDownloadServer').disabled,true);
+ await s.node('webPrepareServer').onclick();assert.ok(s.infos.at(-1).binaryUrl.endsWith('.bin'));assert.equal(s.node('webDownloadServer').disabled,true);
  assert.equal(s.writes.length,0);
 });
 
@@ -139,8 +157,8 @@ test('only explicit checked Install starts a transfer; fresh target read is need
 test('changing file or losing connection invalidates preparation and consent',async()=>{const s=setup();await s.node('webPrepareLocal').onclick();s.node('webConfirm').checked=true;s.node('webFirmware').onchange();await s.node('webInstall').onclick();assert.equal(s.writes.length,0);assert.equal(s.node('webConfirm').checked,false);await s.node('webPrepareLocal').onclick();s.device.gatt.disconnect();assert.equal(s.node('webReview').hidden,true);assert.equal(s.node('webPrepareLocal').disabled,true)});
 test('native diagnostics do not enable firmware writes; server metadata lookup stays independent',async()=>{const s=setup({native:true});assert.equal(s.node('webPrepareServer').disabled,false);await s.node('webPrepareLocal').onclick();assert.equal(s.writes.length,0);assert.equal(s.locks.length,0)});
 test('wrong OTA properties block file preparation without any write',async()=>{const s=setup({properties:{read:true,writeWithoutResponse:false}});await s.node('webPrepareLocal').onclick();assert.equal(s.writes.length,0);assert.match(s.node('webUpgradeStatus').textContent,/unavailable/);assert.equal(s.node('webReview').hidden,true)});
-test('From server loads TXT first and waits for a separate explicit BIN action',async()=>{const s=setup({server:true});await s.node('webPrepareServer').onclick();assert.equal(s.requests.length,1);assert.ok(s.requests[0].endsWith('/ota_info.txt'));assert.equal(s.node('webReview').hidden,true);assert.equal(s.writes.length,0);await s.node('webDownloadServer').onclick();assert.equal(s.requests.length,2);assert.equal(s.writes.length,0);assert.equal(s.node('webReview').hidden,false);assert.match(s.node('webUpgradeStatus').textContent,/ready for this remote/)});
-test('MAC restricted metadata can be read, but its BIN is not loaded for installation',async()=>{const s=setup({server:true,mac:'AA:BB:CC:DD:EE:FF'});await s.node('webPrepareServer').onclick();assert.equal(s.requests.length,1);await s.node('webDownloadServer').onclick();assert.equal(s.requests.length,1);assert.equal(s.writes.length,0);assert.match(s.node('webUpgradeStatus').textContent,/MAC restriction/)});
+test('From server loads index then TXT and waits for a separate explicit BIN action',async()=>{const s=setup({server:true});await s.node('webPrepareServer').onclick();assert.equal(s.requests.length,2);assert.ok(s.requests[0].endsWith('/'));assert.ok(s.requests[1].endsWith('/ota_info.txt'));assert.equal(s.node('webReview').hidden,true);assert.equal(s.writes.length,0);await s.node('webDownloadServer').onclick();assert.equal(s.requests.length,3);assert.equal(s.writes.length,0);assert.equal(s.node('webReview').hidden,false);assert.match(s.node('webUpgradeStatus').textContent,/ready for this remote/)});
+test('MAC restricted metadata can be read, but its BIN is not loaded for installation',async()=>{const s=setup({server:true,mac:'AA:BB:CC:DD:EE:FF'});await s.node('webPrepareServer').onclick();assert.equal(s.requests.length,2);await s.node('webDownloadServer').onclick();assert.equal(s.requests.length,2);assert.equal(s.writes.length,0);assert.match(s.node('webUpgradeStatus').textContent,/MAC restriction/)});
 test('same-version reinstall is sent but never claimed independently verified; disconnect retains the result',async()=>{const s=setup({target:'0.0.15'});await s.node('webPrepareLocal').onclick();s.node('webConfirm').checked=true;await s.node('webInstall').onclick();assert.ok(s.writes.length>0);assert.equal(s.window.RcWebUpgrade.diagnostics().state,'installation-unconfirmed');s.handlers['rcota-metadata']({detail:{}});assert.match(s.node('webUpgradeStatus').textContent,/version alone/)});
 test('successful OTA retains a healthy connection and returns current information to the app',async()=>{const s=setup();await s.node('webPrepareLocal').onclick();s.node('webConfirm').checked=true;await s.node('webInstall').onclick();assert.equal(s.disconnects(),0);assert.equal(s.device.gatt.connected,true);assert.equal(s.resumed[0].firmware,'V0.0.16');assert.equal(s.window.RcWebUpgrade.diagnostics().events.at(-1).forcedDisconnect,false)});
 test('after reboot there are zero automatic reconnects; an explicit reconnect verifies the same unit',async()=>{const s=setup({restart:true});await s.node('webPrepareLocal').onclick();s.node('webConfirm').checked=true;await s.node('webInstall').onclick();assert.equal(s.reconnects(),0);assert.equal(s.device.gatt.connected,false);assert.equal(s.window.RcWebUpgrade.diagnostics().state,'awaiting-reconnect');await s.manualReconnect();assert.equal(s.reconnects(),1);assert.equal(s.window.RcWebUpgrade.diagnostics().state,'installed');assert.equal(s.window.RcWebUpgrade.diagnostics().actualFirmware,'V0.0.16');assert.equal(s.window.RcWebUpgrade.diagnostics().batchApproved,true)});
@@ -155,4 +173,4 @@ function memoryStore(){let saved=null;return {load:async()=>saved,save:async val
 test('a page reload restores the BIN and its hash-bound consent without a file input selection',async()=>{const store=memoryStore(),first=setup({store});await first.node('webPrepareLocal').onclick();first.node('webConfirm').checked=true;first.node('webConfirm').onchange();await first.window.RcWebUpgrade.storageIdle();assert.ok(store.saved);const restored=setup({store});restored.node('webFirmware').files=[];await waitFor(()=>restored.window.RcWebUpgrade.diagnostics().storage==='restored'&&restored.window.RcWebUpgrade.diagnostics().state==='ready');assert.equal(restored.node('webInstall').disabled,false);assert.equal(restored.node('webReview').hidden,true);assert.equal(restored.writes.length,0);assert.equal(restored.requests.length,0)});
 test('corrupted saved bytes cannot restore batch consent',async()=>{const store=memoryStore(),first=setup({store});await first.node('webPrepareLocal').onclick();first.node('webConfirm').checked=true;first.node('webConfirm').onchange();await first.window.RcWebUpgrade.storageIdle();store.corrupt();const second=setup({store});await waitFor(()=>second.window.RcWebUpgrade.diagnostics().events?.some(e=>e.type==='firmware-restore-error'));assert.equal(second.node('webInstall').disabled,true);assert.equal(second.window.RcWebUpgrade.diagnostics().batchApproved,false);assert.equal(second.writes.length,0)});
 test('blocked local storage preserves the in-page batch and reports session-only retention',async()=>{const s=setup({store:{load:async()=>null,save:async()=>{throw Error('quota')},clear:async()=>{}}});await s.node('webPrepareLocal').onclick();s.node('webConfirm').checked=true;s.node('webConfirm').onchange();await s.window.RcWebUpgrade.storageIdle();assert.equal(s.window.RcWebUpgrade.diagnostics().storage,'session-only');await s.nextUnit();assert.equal(s.node('webInstall').disabled,false);assert.equal(s.writes.length,0)});
-test('server batch reuses downloaded bytes but still rejects a unit with newer installed firmware',async()=>{const s=setup({server:true});await s.node('webPrepareServer').onclick();await s.node('webDownloadServer').onclick();s.node('webConfirm').checked=true;s.node('webConfirm').onchange();assert.equal(s.requests.length,2);await s.nextUnit();assert.equal(s.node('webInstall').disabled,false);assert.equal(s.requests.length,2);await s.nextUnit({version:'V0.1.0'});assert.equal(s.node('webInstall').disabled,true);assert.equal(s.requests.length,2);assert.equal(s.writes.length,0);assert.equal(s.window.RcWebUpgrade.diagnostics().batchApproved,true)});
+test('server batch reuses downloaded bytes but still rejects a unit with newer installed firmware',async()=>{const s=setup({server:true});await s.node('webPrepareServer').onclick();await s.node('webDownloadServer').onclick();s.node('webConfirm').checked=true;s.node('webConfirm').onchange();assert.equal(s.requests.length,3);await s.nextUnit();assert.equal(s.node('webInstall').disabled,false);assert.equal(s.requests.length,3);await s.nextUnit({version:'V0.1.0'});assert.equal(s.node('webInstall').disabled,true);assert.equal(s.requests.length,3);assert.equal(s.writes.length,0);assert.equal(s.window.RcWebUpgrade.diagnostics().batchApproved,true)});
